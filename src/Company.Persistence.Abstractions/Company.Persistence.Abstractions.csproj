@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+
+    <!-- Treat warnings as errors for production quality -->
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <WarningLevel>9999</WarningLevel>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+
+    <!-- XML documentation -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn> <!-- Allow missing XML docs during development -->
+
+    <!-- NuGet Package Metadata -->
+    <PackageId>Company.Persistence.Abstractions</PackageId>
+    <Version>1.0.0</Version>
+    <Authors>Platform Engineering Team</Authors>
+    <Company>Company</Company>
+    <Description>Enterprise persistence abstractions for MongoDB. Contains interfaces, contracts, and result types without any MongoDB dependencies.</Description>
+    <PackageTags>mongodb;persistence;repository;abstractions;enterprise</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <RepositoryType>git</RepositoryType>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+
+    <!-- Assembly info -->
+    <RootNamespace>Company.Persistence.Abstractions</RootNamespace>
+    <AssemblyName>Company.Persistence.Abstractions</AssemblyName>
+  </PropertyGroup>
+
+  <!-- No external dependencies - this package is pure abstractions -->
+
+</Project>

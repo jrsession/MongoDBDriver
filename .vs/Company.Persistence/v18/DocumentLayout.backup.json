@@ -1,0 +1,54 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\Users\\jrses\\OneDrive\\Documents\\MongoDBDriver\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{0B6FC665-9974-4275-9ECB-F55D6B26B862}|src\\Company.Persistence.Example\\Company.Persistence.Example.csproj|c:\\users\\jrses\\onedrive\\documents\\mongodbdriver\\src\\company.persistence.example\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{0B6FC665-9974-4275-9ECB-F55D6B26B862}|src\\Company.Persistence.Example\\Company.Persistence.Example.csproj|solutionrelative:src\\company.persistence.example\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{0B6FC665-9974-4275-9ECB-F55D6B26B862}|src\\Company.Persistence.Example\\Company.Persistence.Example.csproj|c:\\users\\jrses\\onedrive\\documents\\mongodbdriver\\src\\company.persistence.example\\company.persistence.example.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
+      "RelativeMoniker": "D:0:0:{0B6FC665-9974-4275-9ECB-F55D6B26B862}|src\\Company.Persistence.Example\\Company.Persistence.Example.csproj|solutionrelative:src\\company.persistence.example\\company.persistence.example.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 0,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "Program.cs",
+              "DocumentMoniker": "C:\\Users\\jrses\\OneDrive\\Documents\\MongoDBDriver\\src\\Company.Persistence.Example\\Program.cs",
+              "RelativeDocumentMoniker": "src\\Company.Persistence.Example\\Program.cs",
+              "ToolTip": "C:\\Users\\jrses\\OneDrive\\Documents\\MongoDBDriver\\src\\Company.Persistence.Example\\Program.cs",
+              "RelativeToolTip": "src\\Company.Persistence.Example\\Program.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-02-06T17:42:47.682Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "Company.Persistence.Example",
+              "DocumentMoniker": "C:\\Users\\jrses\\OneDrive\\Documents\\MongoDBDriver\\src\\Company.Persistence.Example\\Company.Persistence.Example.csproj",
+              "RelativeDocumentMoniker": "src\\Company.Persistence.Example\\Company.Persistence.Example.csproj",
+              "ToolTip": "C:\\Users\\jrses\\OneDrive\\Documents\\MongoDBDriver\\src\\Company.Persistence.Example\\Company.Persistence.Example.csproj",
+              "RelativeToolTip": "src\\Company.Persistence.Example\\Company.Persistence.Example.csproj",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
+              "WhenOpened": "2026-02-06T17:42:42.491Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

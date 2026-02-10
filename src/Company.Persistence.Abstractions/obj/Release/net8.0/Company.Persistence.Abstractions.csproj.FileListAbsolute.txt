@@ -1,0 +1,13 @@
+C:\Users\jrses\OneDrive\Documents\MongoDBDriver\src\Company.Persistence.Abstractions\bin\Release\net8.0\Company.Persistence.Abstractions.deps.json
+C:\Users\jrses\OneDrive\Documents\MongoDBDriver\src\Company.Persistence.Abstractions\bin\Release\net8.0\Company.Persistence.Abstractions.dll
+C:\Users\jrses\OneDrive\Documents\MongoDBDriver\src\Company.Persistence.Abstractions\bin\Release\net8.0\Company.Persistence.Abstractions.pdb
+C:\Users\jrses\OneDrive\Documents\MongoDBDriver\src\Company.Persistence.Abstractions\bin\Release\net8.0\Company.Persistence.Abstractions.xml
+C:\Users\jrses\OneDrive\Documents\MongoDBDriver\src\Company.Persistence.Abstractions\obj\Release\net8.0\Company.Persistence.Abstractions.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\jrses\OneDrive\Documents\MongoDBDriver\src\Company.Persistence.Abstractions\obj\Release\net8.0\Company.Persistence.Abstractions.AssemblyInfoInputs.cache
+C:\Users\jrses\OneDrive\Documents\MongoDBDriver\src\Company.Persistence.Abstractions\obj\Release\net8.0\Company.Persistence.Abstractions.AssemblyInfo.cs
+C:\Users\jrses\OneDrive\Documents\MongoDBDriver\src\Company.Persistence.Abstractions\obj\Release\net8.0\Company.Persistence.Abstractions.csproj.CoreCompileInputs.cache
+C:\Users\jrses\OneDrive\Documents\MongoDBDriver\src\Company.Persistence.Abstractions\obj\Release\net8.0\Company.Persistence.Abstractions.dll
+C:\Users\jrses\OneDrive\Documents\MongoDBDriver\src\Company.Persistence.Abstractions\obj\Release\net8.0\refint\Company.Persistence.Abstractions.dll
+C:\Users\jrses\OneDrive\Documents\MongoDBDriver\src\Company.Persistence.Abstractions\obj\Release\net8.0\Company.Persistence.Abstractions.xml
+C:\Users\jrses\OneDrive\Documents\MongoDBDriver\src\Company.Persistence.Abstractions\obj\Release\net8.0\Company.Persistence.Abstractions.pdb
+C:\Users\jrses\OneDrive\Documents\MongoDBDriver\src\Company.Persistence.Abstractions\obj\Release\net8.0\ref\Company.Persistence.Abstractions.dll

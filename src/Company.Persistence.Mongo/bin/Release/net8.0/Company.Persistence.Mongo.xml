@@ -1,0 +1,631 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>Company.Persistence.Mongo</name>
+    </assembly>
+    <members>
+        <member name="T:Company.Persistence.Mongo.Audit.AuditHistoryWriter">
+            <summary>
+            Writes audit history entries to the audit collection.
+            </summary>
+        </member>
+        <member name="M:Company.Persistence.Mongo.Audit.AuditHistoryWriter.WriteAsync(System.String,System.String,Company.Persistence.Abstractions.Audit.AuditAction,System.String,System.String,System.Object,System.Object,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="T:Company.Persistence.Mongo.Audit.IAuditHistoryWriter">
+            <summary>
+            Writes audit history entries to the audit collection.
+            </summary>
+            <remarks>
+            <para>Registered as a singleton service and injected into repositories.</para>
+            <para>All write operations automatically call this to record changes.</para>
+            </remarks>
+        </member>
+        <member name="M:Company.Persistence.Mongo.Audit.IAuditHistoryWriter.WriteAsync(System.String,System.String,Company.Persistence.Abstractions.Audit.AuditAction,System.String,System.String,System.Object,System.Object,System.Threading.CancellationToken)">
+            <summary>
+            Writes an audit entry for an entity change.
+            </summary>
+            <param name="entityType">The entity type name.</param>
+            <param name="entityId">The entity ID as string.</param>
+            <param name="action">The action performed.</param>
+            <param name="userId">The user who performed the action.</param>
+            <param name="correlationId">Optional correlation ID.</param>
+            <param name="oldValue">The entity state before the change (null for create).</param>
+            <param name="newValue">The entity state after the change (null for delete).</param>
+            <param name="cancellationToken">Cancellation token.</param>
+            <returns>A task representing the async operation.</returns>
+        </member>
+        <member name="T:Company.Persistence.Mongo.Client.IMongoClientProvider">
+             <summary>
+             Provides access to the configured MongoDB client singleton.
+             </summary>
+             <remarks>
+             <para><b>Design Decision:</b> Interface for testability.
+             Production uses real MongoClient; tests can mock or use Testcontainers.</para>
+             <para><b>Lifecycle:</b> The underlying <see cref="T:MongoDB.Driver.IMongoClient"/> is a singleton.
+             Creating new clients is expensive and should be avoided.</para>
+             </remarks>
+             <example>
+             <code>
+             // In repository implementation
+             public class CustomerRepository(IMongoClientProvider clientProvider)
+             {
+                 private readonly IMongoCollection&lt;CustomerDocument&gt; _collection =
+                     clientProvider.GetCollection&lt;CustomerDocument&gt;("customers");
+             }
+            
+             // In tests with mocking
+             var mockProvider = new Mock&lt;IMongoClientProvider&gt;();
+             mockProvider.Setup(p => p.GetCollection&lt;CustomerDocument&gt;("customers"))
+                 .Returns(mockCollection.Object);
+             </code>
+             </example>
+        </member>
+        <member name="P:Company.Persistence.Mongo.Client.IMongoClientProvider.Client">
+            <summary>
+            Gets the configured MongoDB client (singleton).
+            </summary>
+            <remarks>
+            The client manages its own connection pool internally.
+            Do not dispose this client - it's managed by the DI container.
+            </remarks>
+        </member>
+        <member name="P:Company.Persistence.Mongo.Client.IMongoClientProvider.Database">
+            <summary>
+            Gets the configured database instance.
+            </summary>
+            <remarks>
+            The database name is determined by <see cref="P:Company.Persistence.Mongo.Configuration.MongoSettings.DatabaseName"/>.
+            </remarks>
+        </member>
+        <member name="M:Company.Persistence.Mongo.Client.IMongoClientProvider.GetCollection``1(System.String)">
+            <summary>
+            Gets a typed collection with the specified name.
+            </summary>
+            <typeparam name="TDocument">The document type.</typeparam>
+            <param name="collectionName">The collection name.</param>
+            <returns>A typed collection handle.</returns>
+            <exception cref="T:System.ArgumentException">
+            Thrown if <paramref name="collectionName"/> is null or whitespace.
+            </exception>
+        </member>
+        <member name="T:Company.Persistence.Mongo.Client.MongoClientProvider">
+            <summary>
+            Provides a singleton MongoClient configured for MongoDB Atlas.
+            </summary>
+        </member>
+        <member name="T:Company.Persistence.Mongo.Configuration.MongoSettings">
+             <summary>
+             Strongly-typed MongoDB connection settings with Atlas-optimized defaults.
+             </summary>
+             <remarks>
+             <para><b>Configuration Section:</b> "MongoDB" in appsettings.json</para>
+             <para><b>Design Decision:</b> Uses <c>required</c> + <c>init</c> to ensure:</para>
+             <list type="bullet">
+               <item>Mandatory properties cannot be null (compile-time safety)</item>
+               <item>Immutable after construction (thread-safe)</item>
+               <item>Clear validation errors if configuration is missing</item>
+             </list>
+             </remarks>
+             <example>
+             <code>
+             // appsettings.json
+             {
+               "MongoDB": {
+                 "ConnectionString": "mongodb+srv://user:pass@cluster.mongodb.net",
+                 "DatabaseName": "myservice-db",
+                 "ReadPreference": "primary"  // Override default for strong consistency
+               }
+             }
+            
+             // Registration in Program.cs
+             services.AddOptions&lt;MongoSettings&gt;()
+                 .BindConfiguration("MongoDB")
+                 .ValidateDataAnnotations()
+                 .ValidateOnStart();
+             </code>
+             </example>
+        </member>
+        <member name="P:Company.Persistence.Mongo.Configuration.MongoSettings.ConnectionString">
+            <summary>
+            Gets the MongoDB Atlas connection string (mongodb+srv://).
+            </summary>
+            <remarks>
+            <para><b>Security:</b> Should come from Azure Key Vault or AWS Secrets Manager.</para>
+            <para><b>Never:</b> Commit to source control or log this value.</para>
+            </remarks>
+        </member>
+        <member name="P:Company.Persistence.Mongo.Configuration.MongoSettings.DatabaseName">
+            <summary>
+            Gets the database name to use.
+            </summary>
+        </member>
+        <member name="P:Company.Persistence.Mongo.Configuration.MongoSettings.ConnectTimeoutMs">
+            <summary>
+            Gets the connection timeout in milliseconds.
+            </summary>
+            <remarks>
+            <para><b>Default:</b> 10,000ms (10s)</para>
+            <para><b>Rationale:</b> Atlas serverless/shared tiers can have cold start latency of 5-7s.</para>
+            </remarks>
+        </member>
+        <member name="P:Company.Persistence.Mongo.Configuration.MongoSettings.ServerSelectionTimeoutMs">
+            <summary>
+            Gets the server selection timeout in milliseconds.
+            </summary>
+            <remarks>
+            <para><b>Default:</b> 30,000ms (30s)</para>
+            <para><b>Rationale:</b> Atlas automatic failover typically takes 10-30s to elect a new primary.</para>
+            </remarks>
+        </member>
+        <member name="P:Company.Persistence.Mongo.Configuration.MongoSettings.SocketTimeoutMs">
+            <summary>
+            Gets the socket/operation timeout in milliseconds.
+            </summary>
+            <remarks>
+            <para><b>Default:</b> 60,000ms (60s)</para>
+            <para><b>Rationale:</b> Long-running aggregations need time to complete.</para>
+            </remarks>
+        </member>
+        <member name="P:Company.Persistence.Mongo.Configuration.MongoSettings.MaxConnectionPoolSize">
+            <summary>
+            Gets the maximum connection pool size.
+            </summary>
+            <remarks>
+            <para><b>Default:</b> 100 connections</para>
+            <para><b>Rationale:</b> Sufficient for most workloads. Atlas M10+ supports up to 1500.</para>
+            </remarks>
+        </member>
+        <member name="P:Company.Persistence.Mongo.Configuration.MongoSettings.MinConnectionPoolSize">
+            <summary>
+            Gets the minimum connection pool size.
+            </summary>
+            <remarks>
+            <para><b>Default:</b> 5 connections (kept warm)</para>
+            <para><b>Rationale:</b> Prevents cold start latency on first requests.</para>
+            </remarks>
+        </member>
+        <member name="P:Company.Persistence.Mongo.Configuration.MongoSettings.ReadPreference">
+            <summary>
+            Gets the read preference for query routing.
+            </summary>
+            <remarks>
+            <para><b>Default:</b> "secondaryPreferred"</para>
+            <para><b>Options:</b> "primary", "primaryPreferred", "secondary", "secondaryPreferred", "nearest"</para>
+            <para><b>Cost Impact:</b> Reading from secondaries reduces primary load by ~40-60%,
+            potentially allowing a smaller (cheaper) Atlas tier.</para>
+            <para><b>Trade-off:</b> Secondary reads may be milliseconds behind primary (eventual consistency).
+            Use "primary" for operations requiring strong consistency.</para>
+            </remarks>
+        </member>
+        <member name="P:Company.Persistence.Mongo.Configuration.MongoSettings.WriteConcern">
+            <summary>
+            Gets the write concern for durability guarantees.
+            </summary>
+            <remarks>
+            <para><b>Default:</b> "majority"</para>
+            <para><b>Options:</b> "0" (unacknowledged), "1" (primary only), "majority" (replicated)</para>
+            <para><b>Rationale:</b> "majority" ensures writes survive primary failover and is required for transactions.</para>
+            <para><b>Trade-off:</b> ~10-20ms additional latency vs "1", but guaranteed durability.</para>
+            </remarks>
+        </member>
+        <member name="P:Company.Persistence.Mongo.Configuration.MongoSettings.ReadConcern">
+            <summary>
+            Gets the read concern for consistency guarantees.
+            </summary>
+            <remarks>
+            <para><b>Default:</b> "majority"</para>
+            <para><b>Options:</b> "local", "majority", "linearizable"</para>
+            <para><b>Rationale:</b> "majority" only reads committed data, avoiding dirty reads.</para>
+            </remarks>
+        </member>
+        <member name="P:Company.Persistence.Mongo.Configuration.MongoSettings.RetryWrites">
+            <summary>
+            Gets whether to automatically retry writes on transient failures.
+            </summary>
+            <remarks>
+            <para><b>Default:</b> true</para>
+            <para><b>Rationale:</b> Handles network blips automatically without application code changes.</para>
+            </remarks>
+        </member>
+        <member name="P:Company.Persistence.Mongo.Configuration.MongoSettings.RetryReads">
+            <summary>
+            Gets whether to automatically retry reads on transient failures.
+            </summary>
+            <remarks>
+            <para><b>Default:</b> true</para>
+            <para><b>Rationale:</b> Same as RetryWrites for read operations.</para>
+            </remarks>
+        </member>
+        <member name="P:Company.Persistence.Mongo.Configuration.MongoSettings.AuditHistoryCollectionName">
+            <summary>
+            Gets the name of the audit history collection.
+            </summary>
+            <remarks>
+            <para><b>Default:</b> "_audit_history"</para>
+            <para>All audit entries are stored in this collection with the entity type as a discriminator.</para>
+            </remarks>
+        </member>
+        <member name="P:Company.Persistence.Mongo.Configuration.MongoSettings.CaptureCommandText">
+            <summary>
+            Gets whether to capture command text in OpenTelemetry traces.
+            </summary>
+            <remarks>
+            <para><b>Default:</b> false</para>
+            <para><b>Security:</b> Enable only in development/test. May expose sensitive data in production.</para>
+            </remarks>
+        </member>
+        <member name="T:Company.Persistence.Mongo.Documents.AuditHistoryDocument">
+            <summary>
+            MongoDB document for storing audit history entries.
+            </summary>
+            <remarks>
+            <para><b>Collection:</b> Stored in the "_audit_history" collection (configurable).</para>
+            <para><b>Indexes:</b> Should have indexes on (EntityType, EntityId, Timestamp) for efficient queries.</para>
+            <para><b>TTL:</b> Consider adding a TTL index on Timestamp for automatic cleanup.</para>
+            </remarks>
+        </member>
+        <member name="P:Company.Persistence.Mongo.Documents.AuditHistoryDocument.Id">
+            <summary>
+            Gets or sets the unique identifier for this audit entry.
+            </summary>
+        </member>
+        <member name="P:Company.Persistence.Mongo.Documents.AuditHistoryDocument.EntityType">
+            <summary>
+            Gets or sets the type name of the audited entity.
+            </summary>
+        </member>
+        <member name="P:Company.Persistence.Mongo.Documents.AuditHistoryDocument.EntityId">
+            <summary>
+            Gets or sets the entity's identifier as a string.
+            </summary>
+        </member>
+        <member name="P:Company.Persistence.Mongo.Documents.AuditHistoryDocument.Action">
+            <summary>
+            Gets or sets the action that was performed.
+            </summary>
+        </member>
+        <member name="P:Company.Persistence.Mongo.Documents.AuditHistoryDocument.UserId">
+            <summary>
+            Gets or sets the user ID who performed the action.
+            </summary>
+        </member>
+        <member name="P:Company.Persistence.Mongo.Documents.AuditHistoryDocument.Timestamp">
+            <summary>
+            Gets or sets when the action was performed (UTC).
+            </summary>
+        </member>
+        <member name="P:Company.Persistence.Mongo.Documents.AuditHistoryDocument.CorrelationId">
+            <summary>
+            Gets or sets the correlation ID for distributed tracing.
+            </summary>
+        </member>
+        <member name="P:Company.Persistence.Mongo.Documents.AuditHistoryDocument.OldValue">
+            <summary>
+            Gets or sets the entity state before the change.
+            </summary>
+            <remarks>
+            Stored as raw BSON document for flexibility.
+            </remarks>
+        </member>
+        <member name="P:Company.Persistence.Mongo.Documents.AuditHistoryDocument.NewValue">
+            <summary>
+            Gets or sets the entity state after the change.
+            </summary>
+        </member>
+        <member name="T:Company.Persistence.Mongo.Documents.MongoDocumentBase">
+            <summary>
+            Base class for all MongoDB documents with audit and soft delete fields.
+            </summary>
+        </member>
+        <member name="P:Company.Persistence.Mongo.Documents.MongoDocumentBase.InternalId">
+            <summary>MongoDB internal ObjectId (auto-generated).</summary>
+        </member>
+        <member name="P:Company.Persistence.Mongo.Documents.MongoDocumentBase.Id">
+            <summary>Domain entity ID stored as string.</summary>
+        </member>
+        <member name="T:Company.Persistence.Mongo.Extensions.ServiceCollectionExtensions">
+            <summary>
+            Extension methods for configuring MongoDB persistence in the DI container.
+            </summary>
+        </member>
+        <member name="M:Company.Persistence.Mongo.Extensions.ServiceCollectionExtensions.AddMongoPersistence(Microsoft.Extensions.DependencyInjection.IServiceCollection,System.Action{Company.Persistence.Mongo.Configuration.MongoSettings})">
+            <summary>
+            Adds MongoDB persistence services with inline configuration.
+            </summary>
+        </member>
+        <member name="M:Company.Persistence.Mongo.Extensions.ServiceCollectionExtensions.AddMongoPersistence(Microsoft.Extensions.DependencyInjection.IServiceCollection,Microsoft.Extensions.Configuration.IConfiguration,System.String)">
+            <summary>
+            Adds MongoDB persistence services from configuration section.
+            </summary>
+        </member>
+        <member name="M:Company.Persistence.Mongo.Extensions.ServiceCollectionExtensions.AddMongoRepository``5(Microsoft.Extensions.DependencyInjection.IServiceCollection,System.String)">
+            <summary>
+            Registers a MongoDB repository with its interface.
+            </summary>
+        </member>
+        <member name="M:Company.Persistence.Mongo.Extensions.ServiceCollectionExtensions.AddMongoRepository``6(Microsoft.Extensions.DependencyInjection.IServiceCollection,System.String)">
+            <summary>
+            Registers a MongoDB repository with its mapper.
+            </summary>
+        </member>
+        <member name="M:Company.Persistence.Mongo.Extensions.ServiceCollectionExtensions.AddIndexProvider``2(Microsoft.Extensions.DependencyInjection.IServiceCollection,System.String)">
+            <summary>
+            Registers an index provider for a collection.
+            </summary>
+        </member>
+        <member name="M:Company.Persistence.Mongo.Extensions.ServiceCollectionExtensions.AddDefaultUserContextProvider(Microsoft.Extensions.DependencyInjection.IServiceCollection)">
+            <summary>
+            Registers a default IUserContextProvider that returns "system".
+            </summary>
+        </member>
+        <member name="T:Company.Persistence.Mongo.Health.MongoHealthCheck">
+            <summary>
+            Health check that verifies MongoDB connectivity via ping command.
+            </summary>
+        </member>
+        <member name="T:Company.Persistence.Mongo.Indexes.IIndexDefinitionProvider`1">
+             <summary>
+             Provides index definitions for a MongoDB collection.
+             </summary>
+             <typeparam name="TDocument">The document type for the collection.</typeparam>
+             <remarks>
+             <para><b>Design Decision:</b> Interface enables per-entity index configuration
+             while keeping index creation centralized in <see cref="T:Company.Persistence.Mongo.Indexes.IndexInitializer"/>.</para>
+             <para><b>Usage:</b> Implement this interface for each collection that needs custom indexes.
+             Indexes are created idempotently at application startup.</para>
+             </remarks>
+             <example>
+             <code>
+             public sealed class CustomerIndexProvider : IIndexDefinitionProvider&lt;CustomerDocument&gt;
+             {
+                 public IEnumerable&lt;CreateIndexModel&lt;CustomerDocument&gt;&gt; GetIndexes()
+                 {
+                     // Unique index on email
+                     yield return new CreateIndexModel&lt;CustomerDocument&gt;(
+                         Builders&lt;CustomerDocument&gt;.IndexKeys.Ascending(d => d.Email),
+                         new CreateIndexOptions { Name = "ix_customers_email", Unique = true });
+            
+                     // Compound index for regional queries
+                     yield return new CreateIndexModel&lt;CustomerDocument&gt;(
+                         Builders&lt;CustomerDocument&gt;.IndexKeys
+                             .Ascending(d => d.Region)
+                             .Ascending(d => d.IsDeleted),
+                         new CreateIndexOptions { Name = "ix_customers_region" });
+                 }
+             }
+             </code>
+             </example>
+        </member>
+        <member name="M:Company.Persistence.Mongo.Indexes.IIndexDefinitionProvider`1.GetIndexes">
+            <summary>
+            Gets the index definitions for this collection.
+            </summary>
+            <returns>
+            A collection of index models to create. Indexes are created idempotently
+            (existing indexes with the same name are skipped).
+            </returns>
+        </member>
+        <member name="T:Company.Persistence.Mongo.Indexes.IndexInitializer">
+            <summary>
+            Background service that creates MongoDB indexes at application startup.
+            </summary>
+            <remarks>
+            <para><b>Design Decision:</b> Uses <see cref="T:Microsoft.Extensions.Hosting.IHostedService"/> to run after DI is configured
+            but before the application starts accepting requests.</para>
+            <para><b>Idempotent:</b> Index creation is safe to run multiple times. Existing indexes
+            with the same name are skipped.</para>
+            <para><b>Best Practice:</b> Indexes are created in the background to not block startup.
+            For production, consider creating indexes during deployment instead.</para>
+            </remarks>
+            <example>
+            Registration:
+            <code>
+            // Automatically registered when using AddMongoPersistence()
+            // Or register manually:
+            services.AddHostedService&lt;IndexInitializer&gt;();
+            services.AddSingleton&lt;IIndexDefinitionProvider&lt;CustomerDocument&gt;, CustomerIndexProvider&gt;();
+            </code>
+            </example>
+        </member>
+        <member name="M:Company.Persistence.Mongo.Indexes.IndexInitializer.#ctor(System.IServiceProvider,Microsoft.Extensions.Logging.ILogger{Company.Persistence.Mongo.Indexes.IndexInitializer})">
+            <summary>
+            Creates a new index initializer.
+            </summary>
+        </member>
+        <member name="M:Company.Persistence.Mongo.Indexes.IndexInitializer.StartAsync(System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:Company.Persistence.Mongo.Indexes.IndexInitializer.StopAsync(System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="T:Company.Persistence.Mongo.Indexes.IndexRegistration">
+            <summary>
+            Internal registration for index creation. Used by the DI system to track
+            which collections need indexes.
+            </summary>
+        </member>
+        <member name="T:Company.Persistence.Mongo.Indexes.IndexRegistration`1">
+            <summary>
+            Typed index registration that connects a document type to its index provider.
+            </summary>
+            <typeparam name="TDocument">The MongoDB document type.</typeparam>
+        </member>
+        <member name="T:Company.Persistence.Mongo.Mapping.IEntityMapper`3">
+             <summary>
+             Maps between domain entities and MongoDB documents.
+             </summary>
+             <typeparam name="TEntity">The domain entity type.</typeparam>
+             <typeparam name="TId">The strongly-typed ID type.</typeparam>
+             <typeparam name="TDocument">The MongoDB document type.</typeparam>
+             <remarks>
+             <para><b>Design Decision:</b> Explicit mapping over AutoMapper because:</para>
+             <list type="bullet">
+               <item><b>No hidden magic:</b> All mappings are visible in code</item>
+               <item><b>Compile-time safety:</b> Property mismatches caught at build time</item>
+               <item><b>Clear separation:</b> Domain and persistence schemas evolve independently</item>
+               <item><b>Testability:</b> Easy to unit test mapping logic</item>
+             </list>
+             <para><b>Responsibilities:</b></para>
+             <list type="bullet">
+               <item>Convert domain entity to MongoDB document</item>
+               <item>Convert MongoDB document back to domain entity</item>
+               <item>Parse/format strongly-typed IDs to/from strings</item>
+             </list>
+             </remarks>
+             <example>
+             <code>
+             public sealed class CustomerMapper : IEntityMapper&lt;Customer, CustomerId, CustomerDocument&gt;
+             {
+                 public CustomerDocument ToDocument(Customer entity) => new()
+                 {
+                     Id = FormatId(entity.Id),
+                     Name = entity.Name,
+                     Email = entity.Email
+                 };
+            
+                 public Customer ToDomain(CustomerDocument document)
+                 {
+                     // Create entity and map properties
+                 }
+            
+                 public CustomerId ParseId(string id) => CustomerId.From(id);
+                 public string FormatId(CustomerId id) => id.ToString();
+             }
+             </code>
+             </example>
+        </member>
+        <member name="M:Company.Persistence.Mongo.Mapping.IEntityMapper`3.ToDocument(`0)">
+            <summary>
+            Converts a domain entity to a MongoDB document.
+            </summary>
+            <param name="entity">The domain entity to convert.</param>
+            <returns>The MongoDB document representation.</returns>
+            <remarks>
+            <para>Audit fields (CreatedAt, CreatedBy, Version, etc.) are handled separately
+            by the repository and should not be set by this method.</para>
+            <para>The document's <c>Id</c> field should be set using <see cref="M:Company.Persistence.Mongo.Mapping.IEntityMapper`3.FormatId(`1)"/>.</para>
+            </remarks>
+        </member>
+        <member name="M:Company.Persistence.Mongo.Mapping.IEntityMapper`3.ToDomain(`2)">
+            <summary>
+            Converts a MongoDB document to a domain entity.
+            </summary>
+            <param name="document">The MongoDB document to convert.</param>
+            <returns>The domain entity.</returns>
+            <remarks>
+            <para>All fields including audit fields should be mapped back to the entity.</para>
+            <para>The entity's Id should be set using <see cref="M:Company.Persistence.Mongo.Mapping.IEntityMapper`3.ParseId(System.String)"/>.</para>
+            </remarks>
+        </member>
+        <member name="M:Company.Persistence.Mongo.Mapping.IEntityMapper`3.ParseId(System.String)">
+            <summary>
+            Parses a string ID to the strongly-typed ID.
+            </summary>
+            <param name="id">The string representation of the ID.</param>
+            <returns>The strongly-typed ID.</returns>
+            <exception cref="T:System.FormatException">
+            Thrown if the string cannot be parsed to the ID type.
+            </exception>
+        </member>
+        <member name="M:Company.Persistence.Mongo.Mapping.IEntityMapper`3.FormatId(`1)">
+            <summary>
+            Formats a strongly-typed ID as a string for storage.
+            </summary>
+            <param name="id">The strongly-typed ID.</param>
+            <returns>The string representation for storage.</returns>
+        </member>
+        <member name="T:Company.Persistence.Mongo.Repositories.MongoRepositoryBase`3">
+            <summary>
+            Base repository implementation with audit, soft delete, and optimistic concurrency.
+            </summary>
+            <typeparam name="TEntity">The domain entity type.</typeparam>
+            <typeparam name="TId">The strongly-typed ID type.</typeparam>
+            <typeparam name="TDocument">The MongoDB document type.</typeparam>
+            <remarks>
+            <para><b>Design Decision:</b> Abstract class provides complete CRUD implementation.
+            Derived repositories only add domain-specific queries.</para>
+            <para><b>Features:</b></para>
+            <list type="bullet">
+              <item>Automatic audit field population (CreatedAt, UpdatedAt, etc.)</item>
+              <item>Optimistic concurrency via Version field</item>
+              <item>Soft delete with automatic query filtering</item>
+              <item>Audit history recording</item>
+              <item>OpenTelemetry Activity tracking</item>
+            </list>
+            </remarks>
+        </member>
+        <member name="F:Company.Persistence.Mongo.Repositories.MongoRepositoryBase`3.NotDeletedFilter">
+            <summary>
+            Filter that excludes soft-deleted documents.
+            </summary>
+        </member>
+        <member name="M:Company.Persistence.Mongo.Repositories.MongoRepositoryBase`3.#ctor(Company.Persistence.Mongo.Client.IMongoClientProvider,Company.Persistence.Mongo.Mapping.IEntityMapper{`0,`1,`2},Company.Persistence.Abstractions.Audit.IUserContextProvider,Company.Persistence.Mongo.Audit.IAuditHistoryWriter,Microsoft.Extensions.Logging.ILogger,System.String)">
+            <summary>
+            Creates a new repository instance.
+            </summary>
+        </member>
+        <member name="P:Company.Persistence.Mongo.Repositories.MongoRepositoryBase`3.Collection">
+            <summary>
+            Gets the underlying MongoDB collection for custom queries.
+            </summary>
+        </member>
+        <member name="P:Company.Persistence.Mongo.Repositories.MongoRepositoryBase`3.Mapper">
+            <summary>
+            Gets the entity mapper.
+            </summary>
+        </member>
+        <member name="M:Company.Persistence.Mongo.Repositories.MongoRepositoryBase`3.GetByIdAsync(`1,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:Company.Persistence.Mongo.Repositories.MongoRepositoryBase`3.GetPagedAsync(Company.Persistence.Abstractions.Paging.PagedRequest,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:Company.Persistence.Mongo.Repositories.MongoRepositoryBase`3.ExistsAsync(`1,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:Company.Persistence.Mongo.Repositories.MongoRepositoryBase`3.CountAsync(System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:Company.Persistence.Mongo.Repositories.MongoRepositoryBase`3.AddAsync(`0,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:Company.Persistence.Mongo.Repositories.MongoRepositoryBase`3.UpdateAsync(`0,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:Company.Persistence.Mongo.Repositories.MongoRepositoryBase`3.DeleteAsync(`1,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:Company.Persistence.Mongo.Repositories.MongoRepositoryBase`3.GetSingleAsync(MongoDB.Driver.FilterDefinition{`2},System.Threading.CancellationToken)">
+            <summary>
+            Gets a single entity matching the filter.
+            </summary>
+        </member>
+        <member name="M:Company.Persistence.Mongo.Repositories.MongoRepositoryBase`3.GetPagedAsync(MongoDB.Driver.FilterDefinition{`2},Company.Persistence.Abstractions.Paging.PagedRequest,System.Threading.CancellationToken)">
+            <summary>
+            Gets a paged result with a custom filter.
+            </summary>
+        </member>
+        <member name="M:Company.Persistence.Mongo.Repositories.MongoRepositoryBase`3.GetPagedAsync``1(MongoDB.Driver.FilterDefinition{`2},Company.Persistence.Abstractions.Paging.PagedRequest,System.Linq.Expressions.Expression{System.Func{`2,``0}},System.Threading.CancellationToken,System.Boolean)">
+            <summary>
+            Gets a paged result with a custom filter and sort.
+            </summary>
+        </member>
+        <member name="M:Company.Persistence.Mongo.Repositories.MongoRepositoryBase`3.StartActivity(System.String)">
+            <summary>
+            Starts an Activity for observability.
+            </summary>
+        </member>
+        <member name="T:Company.Persistence.Mongo.UnitOfWork.MongoUnitOfWork">
+            <summary>
+            MongoDB implementation of IUnitOfWork for opt-in transactions.
+            </summary>
+        </member>
+        <member name="P:Company.Persistence.Mongo.UnitOfWork.MongoUnitOfWork.HasActiveTransaction">
+            <inheritdoc />
+        </member>
+        <member name="M:Company.Persistence.Mongo.UnitOfWork.MongoUnitOfWork.BeginTransactionAsync(System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+    </members>
+</doc>

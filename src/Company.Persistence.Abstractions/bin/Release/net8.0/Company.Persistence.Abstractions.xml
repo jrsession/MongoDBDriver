@@ -1,0 +1,1569 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>Company.Persistence.Abstractions</name>
+    </assembly>
+    <members>
+        <member name="T:Company.Persistence.Abstractions.Audit.AuditAction">
+            <summary>
+            The type of action recorded in an audit entry.
+            </summary>
+            <remarks>
+            Used in <see cref="T:Company.Persistence.Abstractions.Audit.AuditEntry"/> to indicate what operation was performed.
+            </remarks>
+        </member>
+        <member name="F:Company.Persistence.Abstractions.Audit.AuditAction.Created">
+            <summary>
+            A new entity was created.
+            </summary>
+            <remarks>
+            <see cref="P:Company.Persistence.Abstractions.Audit.AuditEntry.OldValue"/> will be <c>null</c>.
+            <see cref="P:Company.Persistence.Abstractions.Audit.AuditEntry.NewValue"/> contains the created entity.
+            </remarks>
+        </member>
+        <member name="F:Company.Persistence.Abstractions.Audit.AuditAction.Updated">
+            <summary>
+            An existing entity was updated.
+            </summary>
+            <remarks>
+            <see cref="P:Company.Persistence.Abstractions.Audit.AuditEntry.OldValue"/> contains the entity before the update.
+            <see cref="P:Company.Persistence.Abstractions.Audit.AuditEntry.NewValue"/> contains the entity after the update.
+            </remarks>
+        </member>
+        <member name="F:Company.Persistence.Abstractions.Audit.AuditAction.Deleted">
+            <summary>
+            An entity was deleted (soft or hard).
+            </summary>
+            <remarks>
+            <see cref="P:Company.Persistence.Abstractions.Audit.AuditEntry.OldValue"/> contains the deleted entity.
+            <see cref="P:Company.Persistence.Abstractions.Audit.AuditEntry.NewValue"/> will be <c>null</c>.
+            </remarks>
+        </member>
+        <member name="T:Company.Persistence.Abstractions.Audit.AuditEntry">
+             <summary>
+             Represents a single change in the audit history.
+             </summary>
+             <remarks>
+             <para><b>Storage:</b> Stored in a separate "_audit_history" collection to:</para>
+             <list type="bullet">
+               <item>Avoid document bloat on main entities</item>
+               <item>Enable TTL indexes for retention policies</item>
+               <item>Keep operational queries fast</item>
+             </list>
+             <para><b>Use Cases:</b></para>
+             <list type="bullet">
+               <item>Compliance and regulatory requirements</item>
+               <item>Debugging data issues</item>
+               <item>Audit reports</item>
+               <item>Undo/restore functionality</item>
+             </list>
+             </remarks>
+             <example>
+             <code>
+             // Query audit history for an entity
+             var history = await auditRepository.GetHistoryAsync("Customer", customerId.ToString(), ct);
+            
+             foreach (var entry in history)
+             {
+                 Console.WriteLine($"{entry.Timestamp}: {entry.Action} by {entry.UserId}");
+            
+                 if (entry.Action == AuditAction.Updated)
+                 {
+                     Console.WriteLine($"  Old: {entry.OldValue}");
+                     Console.WriteLine($"  New: {entry.NewValue}");
+                 }
+             }
+             </code>
+             </example>
+        </member>
+        <member name="P:Company.Persistence.Abstractions.Audit.AuditEntry.Id">
+            <summary>
+            Gets the unique identifier for this audit entry.
+            </summary>
+            <remarks>
+            Auto-generated GUID as string.
+            </remarks>
+        </member>
+        <member name="P:Company.Persistence.Abstractions.Audit.AuditEntry.EntityType">
+            <summary>
+            Gets the type name of the audited entity.
+            </summary>
+            <remarks>
+            Examples: "Customer", "Order", "Product"
+            </remarks>
+        </member>
+        <member name="P:Company.Persistence.Abstractions.Audit.AuditEntry.EntityId">
+            <summary>
+            Gets the entity's identifier as a string.
+            </summary>
+            <remarks>
+            The strongly-typed ID is converted to string for storage.
+            </remarks>
+        </member>
+        <member name="P:Company.Persistence.Abstractions.Audit.AuditEntry.Action">
+            <summary>
+            Gets the action that was performed.
+            </summary>
+        </member>
+        <member name="P:Company.Persistence.Abstractions.Audit.AuditEntry.UserId">
+            <summary>
+            Gets the user ID who performed the action.
+            </summary>
+            <remarks>
+            Resolved from <see cref="M:Company.Persistence.Abstractions.Audit.IUserContextProvider.GetCurrentUserId"/>.
+            </remarks>
+        </member>
+        <member name="P:Company.Persistence.Abstractions.Audit.AuditEntry.Timestamp">
+            <summary>
+            Gets when the action was performed (UTC).
+            </summary>
+        </member>
+        <member name="P:Company.Persistence.Abstractions.Audit.AuditEntry.CorrelationId">
+            <summary>
+            Gets the correlation ID for distributed tracing.
+            </summary>
+            <remarks>
+            <para>Resolved from <see cref="M:Company.Persistence.Abstractions.Audit.IUserContextProvider.GetCorrelationId"/>.</para>
+            <para>Use this to correlate audit entries with Application Insights traces.</para>
+            </remarks>
+        </member>
+        <member name="P:Company.Persistence.Abstractions.Audit.AuditEntry.OldValue">
+            <summary>
+            Gets the entity state before the change.
+            </summary>
+            <remarks>
+            <list type="bullet">
+              <item><b>Created:</b> <c>null</c></item>
+              <item><b>Updated:</b> Entity state before the update</item>
+              <item><b>Deleted:</b> Entity state before deletion</item>
+            </list>
+            Stored as a JSON-serializable object (typically the document representation).
+            </remarks>
+        </member>
+        <member name="P:Company.Persistence.Abstractions.Audit.AuditEntry.NewValue">
+            <summary>
+            Gets the entity state after the change.
+            </summary>
+            <remarks>
+            <list type="bullet">
+              <item><b>Created:</b> The newly created entity</item>
+              <item><b>Updated:</b> Entity state after the update</item>
+              <item><b>Deleted:</b> <c>null</c></item>
+            </list>
+            Stored as a JSON-serializable object (typically the document representation).
+            </remarks>
+        </member>
+        <member name="M:Company.Persistence.Abstractions.Audit.AuditEntry.ForCreated(System.String,System.String,System.String,System.String,System.Object)">
+            <summary>
+            Creates a new audit entry for an entity creation.
+            </summary>
+            <param name="entityType">The entity type name.</param>
+            <param name="entityId">The entity ID.</param>
+            <param name="userId">The user who created the entity.</param>
+            <param name="correlationId">Optional correlation ID.</param>
+            <param name="newValue">The created entity state.</param>
+            <returns>A new <see cref="T:Company.Persistence.Abstractions.Audit.AuditEntry"/> for the creation.</returns>
+        </member>
+        <member name="M:Company.Persistence.Abstractions.Audit.AuditEntry.ForUpdated(System.String,System.String,System.String,System.String,System.Object,System.Object)">
+            <summary>
+            Creates a new audit entry for an entity update.
+            </summary>
+            <param name="entityType">The entity type name.</param>
+            <param name="entityId">The entity ID.</param>
+            <param name="userId">The user who updated the entity.</param>
+            <param name="correlationId">Optional correlation ID.</param>
+            <param name="oldValue">The entity state before the update.</param>
+            <param name="newValue">The entity state after the update.</param>
+            <returns>A new <see cref="T:Company.Persistence.Abstractions.Audit.AuditEntry"/> for the update.</returns>
+        </member>
+        <member name="M:Company.Persistence.Abstractions.Audit.AuditEntry.ForDeleted(System.String,System.String,System.String,System.String,System.Object)">
+            <summary>
+            Creates a new audit entry for an entity deletion.
+            </summary>
+            <param name="entityType">The entity type name.</param>
+            <param name="entityId">The entity ID.</param>
+            <param name="userId">The user who deleted the entity.</param>
+            <param name="correlationId">Optional correlation ID.</param>
+            <param name="oldValue">The entity state before deletion.</param>
+            <returns>A new <see cref="T:Company.Persistence.Abstractions.Audit.AuditEntry"/> for the deletion.</returns>
+        </member>
+        <member name="T:Company.Persistence.Abstractions.Audit.IUserContextProvider">
+             <summary>
+             Provides the current user context for audit tracking.
+             </summary>
+             <remarks>
+             <para><b>Purpose:</b> Resolves the current user's identity for populating audit fields
+             (CreatedBy, UpdatedBy, DeletedBy) on entities.</para>
+             <para><b>Design Decision:</b> Interface for testability and flexibility.
+             Implementations can read from various sources:</para>
+             <list type="bullet">
+               <item>HttpContext (ASP.NET Core)</item>
+               <item>JWT claims (API authentication)</item>
+               <item>gRPC metadata</item>
+               <item>Ambient context for background jobs</item>
+             </list>
+             <para><b>Registration:</b> Register as <b>Scoped</b> to capture per-request context:</para>
+             <code>services.AddScoped&lt;IUserContextProvider, HttpContextUserProvider&gt;();</code>
+             </remarks>
+             <example>
+             <code>
+             // ASP.NET Core implementation
+             public sealed class HttpContextUserProvider(IHttpContextAccessor accessor) : IUserContextProvider
+             {
+                 public string GetCurrentUserId()
+                 {
+                     var user = accessor.HttpContext?.User;
+            
+                     // Try common claim types
+                     return user?.FindFirst("sub")?.Value       // OpenID Connect
+                         ?? user?.FindFirst("oid")?.Value       // Azure AD
+                         ?? user?.FindFirst("user_id")?.Value   // Custom
+                         ?? user?.Identity?.Name                // Fallback
+                         ?? "system";                           // Background jobs
+                 }
+            
+                 public string? GetCorrelationId()
+                 {
+                     var context = accessor.HttpContext;
+            
+                     // Check headers first
+                     if (context?.Request.Headers.TryGetValue("X-Correlation-ID", out var correlationId) == true)
+                         return correlationId.ToString();
+            
+                     if (context?.Request.Headers.TryGetValue("X-Request-ID", out var requestId) == true)
+                         return requestId.ToString();
+            
+                     // Fall back to OpenTelemetry trace ID
+                     return System.Diagnostics.Activity.Current?.TraceId.ToString();
+                 }
+             }
+            
+             // Background job implementation
+             public sealed class BackgroundJobUserProvider : IUserContextProvider
+             {
+                 public string GetCurrentUserId() => "system-job";
+                 public string? GetCorrelationId() => System.Diagnostics.Activity.Current?.TraceId.ToString();
+             }
+             </code>
+             </example>
+        </member>
+        <member name="M:Company.Persistence.Abstractions.Audit.IUserContextProvider.GetCurrentUserId">
+            <summary>
+            Gets the current user's identifier.
+            </summary>
+            <returns>
+            The user ID string. Common sources include:
+            <list type="bullet">
+              <item>JWT "sub" claim (OpenID Connect)</item>
+              <item>JWT "oid" claim (Azure AD)</item>
+              <item>Custom claim type</item>
+              <item>"system" or similar for background processes</item>
+            </list>
+            </returns>
+            <remarks>
+            <para>This value is stored in audit fields: CreatedBy, UpdatedBy, DeletedBy.</para>
+            <para>Should never return null - use a default like "system" or "anonymous"
+            when no user context is available.</para>
+            </remarks>
+        </member>
+        <member name="M:Company.Persistence.Abstractions.Audit.IUserContextProvider.GetCorrelationId">
+            <summary>
+            Gets the current correlation/trace ID for distributed tracing.
+            </summary>
+            <returns>
+            The correlation ID from one of these sources (in priority order):
+            <list type="bullet">
+              <item>X-Correlation-ID header</item>
+              <item>X-Request-ID header</item>
+              <item>OpenTelemetry Activity TraceId</item>
+            </list>
+            Returns <c>null</c> if no correlation ID is available.
+            </returns>
+            <remarks>
+            <para>Used for:</para>
+            <list type="bullet">
+              <item>Linking audit entries across services</item>
+              <item>Correlating logs with Application Insights traces</item>
+              <item>Debugging distributed transactions</item>
+            </list>
+            </remarks>
+        </member>
+        <member name="T:Company.Persistence.Abstractions.Entities.IAuditableEntity`1">
+             <summary>
+             Contract for entities with full audit trail and optimistic concurrency.
+             </summary>
+             <typeparam name="TId">The strongly-typed identifier type.</typeparam>
+             <remarks>
+             <para><b>Audit Fields:</b> Automatically populated by the repository layer.
+             Domain code should NOT set these values directly.</para>
+             <para><b>Version Field:</b> Used for optimistic concurrency. Updates will fail
+             with <see cref="F:Company.Persistence.Abstractions.Results.ErrorCodes.Conflict"/> if the version has changed since
+             the entity was loaded.</para>
+             <para><b>Implementation Note:</b> Implementing classes should use <c>private set</c>
+             or <c>init</c> accessors to allow the repository to set these values while
+             preventing external modification.</para>
+             </remarks>
+             <example>
+             <code>
+             public sealed class Customer : IAuditableEntity&lt;CustomerId&gt;
+             {
+                 public CustomerId Id { get; private init; }
+                 public string Name { get; private set; } = string.Empty;
+            
+                 // Audit fields - set by repository
+                 public DateTimeOffset CreatedAt { get; private set; }
+                 public string CreatedBy { get; private set; } = string.Empty;
+                 public DateTimeOffset? UpdatedAt { get; private set; }
+                 public string? UpdatedBy { get; private set; }
+                 public long Version { get; private set; }
+            
+                 public static Customer Create(string name) => new()
+                 {
+                     Id = CustomerId.New(),
+                     Name = name
+                 };
+             }
+             </code>
+             </example>
+        </member>
+        <member name="P:Company.Persistence.Abstractions.Entities.IAuditableEntity`1.CreatedAt">
+            <summary>
+            Gets when the entity was created (UTC).
+            </summary>
+            <remarks>
+            Set automatically by the repository during <c>AddAsync</c>.
+            </remarks>
+        </member>
+        <member name="P:Company.Persistence.Abstractions.Entities.IAuditableEntity`1.CreatedBy">
+            <summary>
+            Gets the user ID who created the entity.
+            </summary>
+            <remarks>
+            Resolved from <see cref="M:Company.Persistence.Abstractions.Audit.IUserContextProvider.GetCurrentUserId"/>.
+            </remarks>
+        </member>
+        <member name="P:Company.Persistence.Abstractions.Entities.IAuditableEntity`1.UpdatedAt">
+            <summary>
+            Gets when the entity was last updated (UTC), or null if never updated.
+            </summary>
+            <remarks>
+            Set automatically by the repository during <c>UpdateAsync</c>.
+            </remarks>
+        </member>
+        <member name="P:Company.Persistence.Abstractions.Entities.IAuditableEntity`1.UpdatedBy">
+            <summary>
+            Gets the user ID who last updated the entity, or null if never updated.
+            </summary>
+        </member>
+        <member name="P:Company.Persistence.Abstractions.Entities.IAuditableEntity`1.Version">
+            <summary>
+            Gets the optimistic concurrency version number.
+            </summary>
+            <remarks>
+            <para>Starts at 1 when created, increments by 1 on each update.</para>
+            <para>Used for optimistic concurrency control. If the version in the database
+            doesn't match the expected version, the update fails with
+            <see cref="F:Company.Persistence.Abstractions.Results.ErrorCodes.Conflict"/>.</para>
+            </remarks>
+        </member>
+        <member name="T:Company.Persistence.Abstractions.Entities.IEntity`1">
+             <summary>
+             Base contract for all identifiable entities.
+             </summary>
+             <typeparam name="TId">The strongly-typed identifier type.</typeparam>
+             <remarks>
+             <para><b>Design Decision:</b> Generic TId enables strongly-typed IDs (CustomerId, OrderId)
+             to prevent primitive obsession and catch ID mismatches at compile time.</para>
+             <para><b>Covariance:</b> The <c>out</c> modifier allows <c>IEntity&lt;DerivedId&gt;</c>
+             to be used where <c>IEntity&lt;BaseId&gt;</c> is expected.</para>
+             </remarks>
+             <example>
+             <code>
+             // Define a strongly-typed ID
+             public readonly record struct CustomerId(Guid Value);
+            
+             // Implement IEntity with the strongly-typed ID
+             public sealed class Customer : IEntity&lt;CustomerId&gt;
+             {
+                 public CustomerId Id { get; private init; }
+                 public string Name { get; private set; } = string.Empty;
+             }
+             </code>
+             </example>
+        </member>
+        <member name="P:Company.Persistence.Abstractions.Entities.IEntity`1.Id">
+            <summary>
+            Gets the unique identifier for this entity.
+            </summary>
+            <remarks>
+            The ID is typically set during entity creation and should not change
+            during the entity's lifetime.
+            </remarks>
+        </member>
+        <member name="T:Company.Persistence.Abstractions.Entities.ISoftDeletable">
+             <summary>
+             Marker interface for entities that support soft deletion.
+             </summary>
+             <remarks>
+             <para><b>Behavior:</b> When an entity implements this interface, the repository will:</para>
+             <list type="bullet">
+               <item>Set <see cref="P:Company.Persistence.Abstractions.Entities.ISoftDeletable.IsDeleted"/> to <c>true</c> instead of physically deleting</item>
+               <item>Automatically filter out soft-deleted entities from all queries</item>
+               <item>Record <see cref="P:Company.Persistence.Abstractions.Entities.ISoftDeletable.DeletedAt"/> and <see cref="P:Company.Persistence.Abstractions.Entities.ISoftDeletable.DeletedBy"/> for audit trail</item>
+             </list>
+             <para><b>Why Soft Delete:</b></para>
+             <list type="bullet">
+               <item><b>Audit Trail:</b> Know who deleted what and when</item>
+               <item><b>Recovery:</b> Accidental deletions are reversible</item>
+               <item><b>Compliance:</b> Many regulations require data retention</item>
+               <item><b>Referential Integrity:</b> Foreign references don't break</item>
+             </list>
+             </remarks>
+             <example>
+             <code>
+             public sealed class Customer : IAuditableEntity&lt;CustomerId&gt;, ISoftDeletable
+             {
+                 public CustomerId Id { get; private init; }
+            
+                 // Soft delete fields - set by repository
+                 public bool IsDeleted { get; private set; }
+                 public DateTimeOffset? DeletedAt { get; private set; }
+                 public string? DeletedBy { get; private set; }
+             }
+            
+             // When calling DeleteAsync, the entity is soft-deleted:
+             await repository.DeleteAsync(customerId, cancellationToken);
+             // IsDeleted = true, DeletedAt = now, DeletedBy = current user
+            
+             // Subsequent queries automatically exclude soft-deleted entities:
+             var result = await repository.GetByIdAsync(customerId, cancellationToken);
+             // Returns Error.NotFound because entity is soft-deleted
+             </code>
+             </example>
+        </member>
+        <member name="P:Company.Persistence.Abstractions.Entities.ISoftDeletable.IsDeleted">
+            <summary>
+            Gets whether the entity has been soft-deleted.
+            </summary>
+            <remarks>
+            When <c>true</c>, the entity is excluded from all standard queries.
+            </remarks>
+        </member>
+        <member name="P:Company.Persistence.Abstractions.Entities.ISoftDeletable.DeletedAt">
+            <summary>
+            Gets when the entity was soft-deleted (UTC), or null if not deleted.
+            </summary>
+        </member>
+        <member name="P:Company.Persistence.Abstractions.Entities.ISoftDeletable.DeletedBy">
+            <summary>
+            Gets the user ID who soft-deleted the entity, or null if not deleted.
+            </summary>
+        </member>
+        <member name="T:Company.Persistence.Abstractions.Paging.PagedRequest">
+             <summary>
+             Represents pagination parameters for list queries.
+             </summary>
+             <remarks>
+             <para><b>Design Decision:</b> Enforces pagination on all list queries to prevent
+             unbounded queries that could exhaust memory or timeout.</para>
+             <para><b>Validation:</b> Invalid values are clamped to valid ranges rather than throwing,
+             following the robustness principle (be conservative in what you send, liberal in what you accept).</para>
+             <para><b>Safety:</b> <see cref="F:Company.Persistence.Abstractions.Paging.PagedRequest.MaxPageSize"/> prevents accidentally requesting millions of records.</para>
+             </remarks>
+             <example>
+             <code>
+             // Default: page 1, 20 items
+             var request = new PagedRequest();
+            
+             // Custom pagination
+             var request = new PagedRequest(Page: 2, PageSize: 50);
+            
+             // PageSize is automatically clamped to MaxPageSize
+             var request = new PagedRequest(PageSize: 500);  // Becomes 100
+            
+             // Page is automatically clamped to minimum 1
+             var request = new PagedRequest(Page: 0);  // Becomes 1
+            
+             // Navigate pages
+             var nextPage = request.NextPage();
+             var prevPage = request.PreviousPage();
+             </code>
+             </example>
+        </member>
+        <member name="F:Company.Persistence.Abstractions.Paging.PagedRequest.MaxPageSize">
+            <summary>
+            Maximum allowed page size to prevent unbounded queries.
+            </summary>
+            <remarks>
+            This is a hard limit. Requests for larger page sizes are silently clamped.
+            </remarks>
+        </member>
+        <member name="F:Company.Persistence.Abstractions.Paging.PagedRequest.DefaultPageSize">
+            <summary>
+            Default page size when not specified.
+            </summary>
+        </member>
+        <member name="F:Company.Persistence.Abstractions.Paging.PagedRequest.MinPage">
+            <summary>
+            Minimum valid page number.
+            </summary>
+        </member>
+        <member name="M:Company.Persistence.Abstractions.Paging.PagedRequest.#ctor(System.Int32,System.Int32)">
+            <summary>
+            Creates a new paged request with the specified parameters.
+            </summary>
+            <param name="Page">1-based page number. Values less than 1 are clamped to 1.</param>
+            <param name="PageSize">Items per page. Values are clamped between 1 and <see cref="F:Company.Persistence.Abstractions.Paging.PagedRequest.MaxPageSize"/>.</param>
+        </member>
+        <member name="P:Company.Persistence.Abstractions.Paging.PagedRequest.Page">
+            <summary>
+            Gets the 1-based page number (always >= 1).
+            </summary>
+        </member>
+        <member name="P:Company.Persistence.Abstractions.Paging.PagedRequest.PageSize">
+            <summary>
+            Gets the items per page (always between 1 and <see cref="F:Company.Persistence.Abstractions.Paging.PagedRequest.MaxPageSize"/>).
+            </summary>
+        </member>
+        <member name="P:Company.Persistence.Abstractions.Paging.PagedRequest.Skip">
+            <summary>
+            Gets the number of items to skip for offset-based pagination.
+            </summary>
+            <remarks>
+            Use this for MongoDB's <c>Skip()</c> or SQL's <c>OFFSET</c>.
+            </remarks>
+            <example>
+            <code>
+            // Page 1, size 20 -> Skip 0
+            // Page 2, size 20 -> Skip 20
+            // Page 3, size 20 -> Skip 40
+            var skip = request.Skip;
+            </code>
+            </example>
+        </member>
+        <member name="M:Company.Persistence.Abstractions.Paging.PagedRequest.NextPage">
+            <summary>
+            Creates a request for the next page with the same page size.
+            </summary>
+            <returns>A new <see cref="T:Company.Persistence.Abstractions.Paging.PagedRequest"/> for the next page.</returns>
+        </member>
+        <member name="M:Company.Persistence.Abstractions.Paging.PagedRequest.PreviousPage">
+            <summary>
+            Creates a request for the previous page (minimum page 1) with the same page size.
+            </summary>
+            <returns>A new <see cref="T:Company.Persistence.Abstractions.Paging.PagedRequest"/> for the previous page.</returns>
+        </member>
+        <member name="M:Company.Persistence.Abstractions.Paging.PagedRequest.WithPage(System.Int32)">
+            <summary>
+            Creates a request for a specific page with the same page size.
+            </summary>
+            <param name="page">The page number to navigate to.</param>
+            <returns>A new <see cref="T:Company.Persistence.Abstractions.Paging.PagedRequest"/> for the specified page.</returns>
+        </member>
+        <member name="M:Company.Persistence.Abstractions.Paging.PagedRequest.WithPageSize(System.Int32)">
+            <summary>
+            Creates a request with a different page size (clamped to valid range).
+            </summary>
+            <param name="pageSize">The new page size.</param>
+            <returns>A new <see cref="T:Company.Persistence.Abstractions.Paging.PagedRequest"/> with the specified page size.</returns>
+        </member>
+        <member name="M:Company.Persistence.Abstractions.Paging.PagedRequest.ToString">
+            <inheritdoc />
+        </member>
+        <member name="T:Company.Persistence.Abstractions.Paging.PagedResult`1">
+             <summary>
+             Represents a paginated collection of items with metadata.
+             </summary>
+             <typeparam name="T">The type of items in the collection.</typeparam>
+             <param name="Items">The items for the current page.</param>
+             <param name="Page">The current page number (1-based).</param>
+             <param name="PageSize">The requested page size.</param>
+             <param name="TotalCount">Total number of items across all pages.</param>
+             <remarks>
+             <para><b>Design Decision:</b> Record with computed properties for common pagination metadata.</para>
+             <para><b>Items Collection:</b> Uses <see cref="T:System.Collections.Generic.IReadOnlyList`1"/> for indexed access
+             without allowing mutation. The list is materialized (not lazy).</para>
+             </remarks>
+             <example>
+             <code>
+             var result = await repository.GetPagedAsync(request, ct);
+            
+             result.Match(
+                 success: paged =>
+                 {
+                     Console.WriteLine($"Page {paged.Page} of {paged.TotalPages}");
+                     Console.WriteLine($"Showing {paged.Items.Count} of {paged.TotalCount} items");
+            
+                     foreach (var item in paged.Items)
+                     {
+                         Console.WriteLine(item);
+                     }
+            
+                     if (paged.HasNextPage)
+                     {
+                         var nextPageRequest = request.NextPage();
+                         // Fetch next page...
+                     }
+                 },
+                 failure: error => Console.WriteLine($"Error: {error.Message}")
+             );
+            
+             // Map to DTOs
+             PagedResult&lt;CustomerDto&gt; dtos = paged.Map(c => new CustomerDto(c));
+             </code>
+             </example>
+        </member>
+        <member name="M:Company.Persistence.Abstractions.Paging.PagedResult`1.#ctor(System.Collections.Generic.IReadOnlyList{`0},System.Int32,System.Int32,System.Int64)">
+             <summary>
+             Represents a paginated collection of items with metadata.
+             </summary>
+             <typeparam name="T">The type of items in the collection.</typeparam>
+             <param name="Items">The items for the current page.</param>
+             <param name="Page">The current page number (1-based).</param>
+             <param name="PageSize">The requested page size.</param>
+             <param name="TotalCount">Total number of items across all pages.</param>
+             <remarks>
+             <para><b>Design Decision:</b> Record with computed properties for common pagination metadata.</para>
+             <para><b>Items Collection:</b> Uses <see cref="T:System.Collections.Generic.IReadOnlyList`1"/> for indexed access
+             without allowing mutation. The list is materialized (not lazy).</para>
+             </remarks>
+             <example>
+             <code>
+             var result = await repository.GetPagedAsync(request, ct);
+            
+             result.Match(
+                 success: paged =>
+                 {
+                     Console.WriteLine($"Page {paged.Page} of {paged.TotalPages}");
+                     Console.WriteLine($"Showing {paged.Items.Count} of {paged.TotalCount} items");
+            
+                     foreach (var item in paged.Items)
+                     {
+                         Console.WriteLine(item);
+                     }
+            
+                     if (paged.HasNextPage)
+                     {
+                         var nextPageRequest = request.NextPage();
+                         // Fetch next page...
+                     }
+                 },
+                 failure: error => Console.WriteLine($"Error: {error.Message}")
+             );
+            
+             // Map to DTOs
+             PagedResult&lt;CustomerDto&gt; dtos = paged.Map(c => new CustomerDto(c));
+             </code>
+             </example>
+        </member>
+        <member name="P:Company.Persistence.Abstractions.Paging.PagedResult`1.Items">
+            <summary>The items for the current page.</summary>
+        </member>
+        <member name="P:Company.Persistence.Abstractions.Paging.PagedResult`1.Page">
+            <summary>The current page number (1-based).</summary>
+        </member>
+        <member name="P:Company.Persistence.Abstractions.Paging.PagedResult`1.PageSize">
+            <summary>The requested page size.</summary>
+        </member>
+        <member name="P:Company.Persistence.Abstractions.Paging.PagedResult`1.TotalCount">
+            <summary>Total number of items across all pages.</summary>
+        </member>
+        <member name="P:Company.Persistence.Abstractions.Paging.PagedResult`1.TotalPages">
+            <summary>
+            Gets the total number of pages.
+            </summary>
+            <remarks>
+            Calculated as ceiling of <see cref="P:Company.Persistence.Abstractions.Paging.PagedResult`1.TotalCount"/> / <see cref="P:Company.Persistence.Abstractions.Paging.PagedResult`1.PageSize"/>.
+            Returns 0 if <see cref="P:Company.Persistence.Abstractions.Paging.PagedResult`1.PageSize"/> is 0 (edge case).
+            </remarks>
+        </member>
+        <member name="P:Company.Persistence.Abstractions.Paging.PagedResult`1.HasNextPage">
+            <summary>
+            Gets whether there is a next page available.
+            </summary>
+        </member>
+        <member name="P:Company.Persistence.Abstractions.Paging.PagedResult`1.HasPreviousPage">
+            <summary>
+            Gets whether there is a previous page available.
+            </summary>
+        </member>
+        <member name="P:Company.Persistence.Abstractions.Paging.PagedResult`1.HasItems">
+            <summary>
+            Gets whether this page contains any items.
+            </summary>
+        </member>
+        <member name="P:Company.Persistence.Abstractions.Paging.PagedResult`1.IsEmpty">
+            <summary>
+            Gets whether the result set is empty (no items on any page).
+            </summary>
+        </member>
+        <member name="P:Company.Persistence.Abstractions.Paging.PagedResult`1.FirstItemIndex">
+            <summary>
+            Gets the 1-based index of the first item on this page.
+            </summary>
+            <remarks>
+            Returns 0 if the page is empty.
+            </remarks>
+        </member>
+        <member name="P:Company.Persistence.Abstractions.Paging.PagedResult`1.LastItemIndex">
+            <summary>
+            Gets the 1-based index of the last item on this page.
+            </summary>
+            <remarks>
+            Returns 0 if the page is empty.
+            </remarks>
+        </member>
+        <member name="M:Company.Persistence.Abstractions.Paging.PagedResult`1.Empty(Company.Persistence.Abstractions.Paging.PagedRequest)">
+            <summary>
+            Creates an empty paged result for the specified request.
+            </summary>
+            <param name="request">The pagination request.</param>
+            <returns>An empty <see cref="T:Company.Persistence.Abstractions.Paging.PagedResult`1"/> with zero items and total count.</returns>
+            <example>
+            <code>
+            if (noResultsFound)
+            {
+                return PagedResult&lt;Customer&gt;.Empty(request);
+            }
+            </code>
+            </example>
+        </member>
+        <member name="M:Company.Persistence.Abstractions.Paging.PagedResult`1.Map``1(System.Func{`0,``0})">
+            <summary>
+            Transforms the items using the specified mapper function.
+            </summary>
+            <typeparam name="TNew">The type of the transformed items.</typeparam>
+            <param name="mapper">Function to transform each item.</param>
+            <returns>A new <see cref="T:Company.Persistence.Abstractions.Paging.PagedResult`1"/> with transformed items.</returns>
+            <remarks>
+            Pagination metadata (Page, PageSize, TotalCount) is preserved.
+            </remarks>
+            <example>
+            <code>
+            PagedResult&lt;CustomerDto&gt; dtos = customers.Map(c => new CustomerDto
+            {
+                Id = c.Id,
+                Name = c.Name,
+                Email = c.Email
+            });
+            </code>
+            </example>
+        </member>
+        <member name="M:Company.Persistence.Abstractions.Paging.PagedResult`1.MapAsync``1(System.Func{`0,System.Threading.CancellationToken,System.Threading.Tasks.Task{``0}},System.Threading.CancellationToken)">
+            <summary>
+            Transforms the items using the specified async mapper function.
+            </summary>
+            <typeparam name="TNew">The type of the transformed items.</typeparam>
+            <param name="mapper">Async function to transform each item.</param>
+            <param name="cancellationToken">Cancellation token.</param>
+            <returns>A new <see cref="T:Company.Persistence.Abstractions.Paging.PagedResult`1"/> with transformed items.</returns>
+        </member>
+        <member name="M:Company.Persistence.Abstractions.Paging.PagedResult`1.ToString">
+            <inheritdoc />
+        </member>
+        <member name="T:Company.Persistence.Abstractions.Repositories.IReadOnlyRepository`2">
+             <summary>
+             Read-only repository interface for query operations.
+             </summary>
+             <typeparam name="TEntity">The domain entity type.</typeparam>
+             <typeparam name="TId">The strongly-typed identifier type.</typeparam>
+             <remarks>
+             <para><b>Design Decision:</b> Separate read interface enables:</para>
+             <list type="bullet">
+               <item><b>CQRS:</b> Query handlers only need read capabilities</item>
+               <item><b>Read replicas:</b> Can be backed by secondary database nodes</item>
+               <item><b>Testing:</b> Easier to mock when you only need read operations</item>
+               <item><b>Security:</b> Some services may only have read access</item>
+             </list>
+             <para><b>CancellationToken:</b> Required (not optional) on all methods to ensure
+             callers always propagate cancellation properly.</para>
+             <para><b>Soft Delete:</b> All query methods automatically exclude soft-deleted entities
+             when the entity implements <see cref="T:Company.Persistence.Abstractions.Entities.ISoftDeletable"/>.</para>
+             </remarks>
+             <example>
+             <code>
+             public class CustomerQueryHandler(IReadOnlyRepository&lt;Customer, CustomerId&gt; repository)
+             {
+                 public async Task&lt;CustomerDto?&gt; Handle(GetCustomerQuery query, CancellationToken ct)
+                 {
+                     var result = await repository.GetByIdAsync(query.CustomerId, ct);
+            
+                     return result.Match(
+                         success: customer => new CustomerDto(customer),
+                         failure: _ => null
+                     );
+                 }
+             }
+             </code>
+             </example>
+        </member>
+        <member name="M:Company.Persistence.Abstractions.Repositories.IReadOnlyRepository`2.GetByIdAsync(`1,System.Threading.CancellationToken)">
+             <summary>
+             Retrieves an entity by its identifier.
+             </summary>
+             <param name="id">The entity identifier.</param>
+             <param name="cancellationToken">Cancellation token (required).</param>
+             <returns>
+             <see cref="M:Company.Persistence.Abstractions.Results.Result`1.Success(`0)"/> with the entity if found;
+             <see cref="M:Company.Persistence.Abstractions.Results.Result`1.Failure(Company.Persistence.Abstractions.Results.Error)"/> with <see cref="F:Company.Persistence.Abstractions.Results.ErrorCodes.NotFound"/> if not found
+             (including soft-deleted entities).
+             </returns>
+             <example>
+             <code>
+             var result = await repository.GetByIdAsync(customerId, ct);
+            
+             return result switch
+             {
+                 { IsSuccess: true, Value: var customer } => Ok(customer),
+                 { Error.Code: ErrorCodes.NotFound } => NotFound(),
+                 _ => Problem()
+             };
+             </code>
+             </example>
+        </member>
+        <member name="M:Company.Persistence.Abstractions.Repositories.IReadOnlyRepository`2.GetPagedAsync(Company.Persistence.Abstractions.Paging.PagedRequest,System.Threading.CancellationToken)">
+             <summary>
+             Retrieves a paginated list of entities.
+             </summary>
+             <param name="request">Pagination parameters (page number and size).</param>
+             <param name="cancellationToken">Cancellation token (required).</param>
+             <returns>
+             A <see cref="T:Company.Persistence.Abstractions.Paging.PagedResult`1"/> containing the requested page of entities
+             and pagination metadata (total count, total pages, etc.).
+             </returns>
+             <remarks>
+             <para>Results are typically ordered by creation date (newest first) unless
+             overridden by derived repository methods.</para>
+             <para>Soft-deleted entities are automatically excluded.</para>
+             </remarks>
+             <example>
+             <code>
+             var request = new PagedRequest(Page: 1, PageSize: 20);
+             var result = await repository.GetPagedAsync(request, ct);
+            
+             result.Match(
+                 success: paged =>
+                 {
+                     Console.WriteLine($"Showing {paged.Items.Count} of {paged.TotalCount}");
+                     foreach (var entity in paged.Items)
+                     {
+                         // Process entity
+                     }
+                 },
+                 failure: error => Console.WriteLine(error.Message)
+             );
+             </code>
+             </example>
+        </member>
+        <member name="M:Company.Persistence.Abstractions.Repositories.IReadOnlyRepository`2.ExistsAsync(`1,System.Threading.CancellationToken)">
+             <summary>
+             Checks if an entity with the specified identifier exists.
+             </summary>
+             <param name="id">The entity identifier.</param>
+             <param name="cancellationToken">Cancellation token (required).</param>
+             <returns>
+             <c>true</c> if the entity exists and is not soft-deleted;
+             <c>false</c> otherwise.
+             </returns>
+             <remarks>
+             This is more efficient than <see cref="M:Company.Persistence.Abstractions.Repositories.IReadOnlyRepository`2.GetByIdAsync(`1,System.Threading.CancellationToken)"/> when you only need
+             to check existence without loading the full entity.
+             </remarks>
+             <example>
+             <code>
+             var existsResult = await repository.ExistsAsync(customerId, ct);
+            
+             if (existsResult is { IsSuccess: true, Value: true })
+             {
+                 // Entity exists
+             }
+             </code>
+             </example>
+        </member>
+        <member name="M:Company.Persistence.Abstractions.Repositories.IReadOnlyRepository`2.CountAsync(System.Threading.CancellationToken)">
+             <summary>
+             Gets the total count of non-deleted entities.
+             </summary>
+             <param name="cancellationToken">Cancellation token (required).</param>
+             <returns>The total number of entities (excluding soft-deleted).</returns>
+             <example>
+             <code>
+             var countResult = await repository.CountAsync(ct);
+            
+             countResult.Match(
+                 success: count => Console.WriteLine($"Total: {count} entities"),
+                 failure: error => Console.WriteLine(error.Message)
+             );
+             </code>
+             </example>
+        </member>
+        <member name="T:Company.Persistence.Abstractions.Repositories.IRepository`2">
+             <summary>
+             Full repository interface for CRUD operations.
+             </summary>
+             <typeparam name="TEntity">The domain entity type.</typeparam>
+             <typeparam name="TId">The strongly-typed identifier type.</typeparam>
+             <remarks>
+             <para><b>Extends:</b> <see cref="T:Company.Persistence.Abstractions.Repositories.IReadOnlyRepository`2"/> to include all read operations.</para>
+             <para><b>Audit:</b> All mutation operations automatically populate audit fields
+             (CreatedAt, CreatedBy, UpdatedAt, UpdatedBy) using <see cref="T:Company.Persistence.Abstractions.Audit.IUserContextProvider"/>.</para>
+             <para><b>Concurrency:</b> <see cref="M:Company.Persistence.Abstractions.Repositories.IRepository`2.UpdateAsync(`0,System.Threading.CancellationToken)"/> uses optimistic concurrency via the
+             <see cref="P:Company.Persistence.Abstractions.Entities.IAuditableEntity`1.Version"/> field. If the entity was modified since loading,
+             the update fails with <see cref="F:Company.Persistence.Abstractions.Results.ErrorCodes.Conflict"/>.</para>
+             <para><b>Soft Delete:</b> <see cref="M:Company.Persistence.Abstractions.Repositories.IRepository`2.DeleteAsync(`1,System.Threading.CancellationToken)"/> performs soft deletion for entities
+             implementing <see cref="T:Company.Persistence.Abstractions.Entities.ISoftDeletable"/>, setting IsDeleted=true rather than physically
+             removing the document.</para>
+             </remarks>
+             <example>
+             <code>
+             public class CustomerService(IRepository&lt;Customer, CustomerId&gt; repository)
+             {
+                 public async Task&lt;Result&lt;Customer&gt;&gt; CreateAsync(
+                     CreateCustomerCommand cmd,
+                     CancellationToken ct)
+                 {
+                     var customer = Customer.Create(cmd.Name, cmd.Email);
+                     return await repository.AddAsync(customer, ct);
+                     // CreatedAt, CreatedBy, Version automatically set
+                 }
+            
+                 public async Task&lt;Result&lt;Customer&gt;&gt; UpdateEmailAsync(
+                     CustomerId id,
+                     string newEmail,
+                     CancellationToken ct)
+                 {
+                     var result = await repository.GetByIdAsync(id, ct);
+            
+                     return await result.BindAsync(async customer =>
+                     {
+                         customer.UpdateEmail(newEmail);
+                         return await repository.UpdateAsync(customer, ct);
+                         // UpdatedAt, UpdatedBy, Version automatically updated
+                     });
+                 }
+             }
+             </code>
+             </example>
+        </member>
+        <member name="M:Company.Persistence.Abstractions.Repositories.IRepository`2.AddAsync(`0,System.Threading.CancellationToken)">
+             <summary>
+             Adds a new entity to the repository.
+             </summary>
+             <param name="entity">The entity to add.</param>
+             <param name="cancellationToken">Cancellation token (required).</param>
+             <returns>
+             The added entity with populated audit fields:
+             <list type="bullet">
+               <item><b>CreatedAt:</b> Set to current UTC time</item>
+               <item><b>CreatedBy:</b> Set to current user ID</item>
+               <item><b>Version:</b> Set to 1</item>
+             </list>
+             Returns <see cref="F:Company.Persistence.Abstractions.Results.ErrorCodes.Duplicate"/> if a unique constraint is violated.
+             </returns>
+             <remarks>
+             <para>The entity's ID should already be set before calling this method.</para>
+             <para>Audit history is automatically recorded.</para>
+             </remarks>
+             <example>
+             <code>
+             var customer = Customer.Create(name, email);
+             var result = await repository.AddAsync(customer, ct);
+            
+             return result.Match(
+                 success: created => CreatedAtAction(nameof(GetById), new { id = created.Id }, created),
+                 failure: error => error.Code switch
+                 {
+                     ErrorCodes.Duplicate => Conflict(error.Message),
+                     _ => Problem(error.Message)
+                 }
+             );
+             </code>
+             </example>
+        </member>
+        <member name="M:Company.Persistence.Abstractions.Repositories.IRepository`2.UpdateAsync(`0,System.Threading.CancellationToken)">
+             <summary>
+             Updates an existing entity in the repository.
+             </summary>
+             <param name="entity">The entity with updated values.</param>
+             <param name="cancellationToken">Cancellation token (required).</param>
+             <returns>
+             The updated entity with populated audit fields:
+             <list type="bullet">
+               <item><b>UpdatedAt:</b> Set to current UTC time</item>
+               <item><b>UpdatedBy:</b> Set to current user ID</item>
+               <item><b>Version:</b> Incremented by 1</item>
+             </list>
+             Returns <see cref="F:Company.Persistence.Abstractions.Results.ErrorCodes.NotFound"/> if the entity doesn't exist.
+             Returns <see cref="F:Company.Persistence.Abstractions.Results.ErrorCodes.Conflict"/> if the version has changed (concurrent modification).
+             </returns>
+             <remarks>
+             <para><b>Optimistic Concurrency:</b> The entity's current <see cref="P:Company.Persistence.Abstractions.Entities.IAuditableEntity`1.Version"/>
+             is compared against the database. If they don't match, another process modified the entity
+             and the update is rejected with <see cref="F:Company.Persistence.Abstractions.Results.ErrorCodes.Conflict"/>.</para>
+             <para><b>Handling Conflicts:</b> The caller should either:</para>
+             <list type="bullet">
+               <item>Reload the entity and retry the update</item>
+               <item>Inform the user that the data has changed</item>
+             </list>
+             </remarks>
+             <example>
+             <code>
+             // Load, modify, and update
+             var getResult = await repository.GetByIdAsync(id, ct);
+             if (!getResult.IsSuccess) return getResult;
+            
+             var customer = getResult.Value;
+             customer.UpdateEmail(newEmail);
+            
+             var updateResult = await repository.UpdateAsync(customer, ct);
+            
+             return updateResult.Match(
+                 success: updated => Ok(updated),
+                 failure: error => error.Code switch
+                 {
+                     ErrorCodes.NotFound => NotFound(),
+                     ErrorCodes.Conflict => Conflict("Customer was modified by another user. Please refresh."),
+                     _ => Problem(error.Message)
+                 }
+             );
+             </code>
+             </example>
+        </member>
+        <member name="M:Company.Persistence.Abstractions.Repositories.IRepository`2.DeleteAsync(`1,System.Threading.CancellationToken)">
+             <summary>
+             Deletes an entity by its identifier.
+             </summary>
+             <param name="id">The identifier of the entity to delete.</param>
+             <param name="cancellationToken">Cancellation token (required).</param>
+             <returns>
+             <see cref="T:Company.Persistence.Abstractions.Results.Unit"/> on success.
+             Returns <see cref="F:Company.Persistence.Abstractions.Results.ErrorCodes.NotFound"/> if the entity doesn't exist or is already deleted.
+             </returns>
+             <remarks>
+             <para><b>Soft Delete:</b> For entities implementing <see cref="T:Company.Persistence.Abstractions.Entities.ISoftDeletable"/>,
+             this performs a soft delete:</para>
+             <list type="bullet">
+               <item><b>IsDeleted:</b> Set to <c>true</c></item>
+               <item><b>DeletedAt:</b> Set to current UTC time</item>
+               <item><b>DeletedBy:</b> Set to current user ID</item>
+             </list>
+             <para>The document remains in the database but is excluded from all queries.</para>
+             <para>Audit history is automatically recorded.</para>
+             </remarks>
+             <example>
+             <code>
+             var result = await repository.DeleteAsync(customerId, ct);
+            
+             return result.Match(
+                 success: _ => NoContent(),
+                 failure: error => error.Code switch
+                 {
+                     ErrorCodes.NotFound => NotFound(),
+                     _ => Problem(error.Message)
+                 }
+             );
+             </code>
+             </example>
+        </member>
+        <member name="T:Company.Persistence.Abstractions.Results.Error">
+             <summary>
+             Represents a structured error with a code for programmatic handling
+             and a message for human consumption.
+             </summary>
+             <param name="Code">Machine-readable error code (e.g., "NOT_FOUND"). Use <see cref="T:Company.Persistence.Abstractions.Results.ErrorCodes"/> constants.</param>
+             <param name="Message">Human-readable error description suitable for logging or display.</param>
+             <param name="InnerException">Optional underlying exception for infrastructure failures.</param>
+             <remarks>
+             <para><b>Design Decision:</b> Record type provides:</para>
+             <list type="bullet">
+               <item><b>Immutability:</b> Errors cannot be modified after creation</item>
+               <item><b>Value equality:</b> Two errors with same code/message are equal</item>
+               <item><b>Built-in ToString():</b> Automatic formatting for logging</item>
+               <item><b>With expressions:</b> Easy to create variants: <c>error with { Message = "new" }</c></item>
+             </list>
+             </remarks>
+             <example>
+             <code>
+             // Using factory methods (recommended)
+             var notFound = Error.NotFound("Customer", customerId);
+             var conflict = Error.ConcurrencyConflict("Customer", customerId);
+             var validation = Error.Validation("Email is required");
+            
+             // Creating custom errors
+             var custom = new Error("CUSTOM_CODE", "Custom message");
+            
+             // From exception (for infrastructure errors)
+             try { ... }
+             catch (Exception ex)
+             {
+                 return Error.FromException(ex);
+             }
+             </code>
+             </example>
+        </member>
+        <member name="M:Company.Persistence.Abstractions.Results.Error.#ctor(System.String,System.String,System.Exception)">
+             <summary>
+             Represents a structured error with a code for programmatic handling
+             and a message for human consumption.
+             </summary>
+             <param name="Code">Machine-readable error code (e.g., "NOT_FOUND"). Use <see cref="T:Company.Persistence.Abstractions.Results.ErrorCodes"/> constants.</param>
+             <param name="Message">Human-readable error description suitable for logging or display.</param>
+             <param name="InnerException">Optional underlying exception for infrastructure failures.</param>
+             <remarks>
+             <para><b>Design Decision:</b> Record type provides:</para>
+             <list type="bullet">
+               <item><b>Immutability:</b> Errors cannot be modified after creation</item>
+               <item><b>Value equality:</b> Two errors with same code/message are equal</item>
+               <item><b>Built-in ToString():</b> Automatic formatting for logging</item>
+               <item><b>With expressions:</b> Easy to create variants: <c>error with { Message = "new" }</c></item>
+             </list>
+             </remarks>
+             <example>
+             <code>
+             // Using factory methods (recommended)
+             var notFound = Error.NotFound("Customer", customerId);
+             var conflict = Error.ConcurrencyConflict("Customer", customerId);
+             var validation = Error.Validation("Email is required");
+            
+             // Creating custom errors
+             var custom = new Error("CUSTOM_CODE", "Custom message");
+            
+             // From exception (for infrastructure errors)
+             try { ... }
+             catch (Exception ex)
+             {
+                 return Error.FromException(ex);
+             }
+             </code>
+             </example>
+        </member>
+        <member name="P:Company.Persistence.Abstractions.Results.Error.Code">
+            <summary>Machine-readable error code (e.g., "NOT_FOUND"). Use <see cref="T:Company.Persistence.Abstractions.Results.ErrorCodes"/> constants.</summary>
+        </member>
+        <member name="P:Company.Persistence.Abstractions.Results.Error.Message">
+            <summary>Human-readable error description suitable for logging or display.</summary>
+        </member>
+        <member name="P:Company.Persistence.Abstractions.Results.Error.InnerException">
+            <summary>Optional underlying exception for infrastructure failures.</summary>
+        </member>
+        <member name="M:Company.Persistence.Abstractions.Results.Error.NotFound(System.String,System.Object)">
+            <summary>
+            Creates a "not found" error for the specified entity type and ID.
+            </summary>
+            <param name="entityType">The type of entity (e.g., "Customer").</param>
+            <param name="id">The ID that was not found.</param>
+            <returns>An error with code <see cref="F:Company.Persistence.Abstractions.Results.ErrorCodes.NotFound"/>.</returns>
+            <example>
+            <code>
+            return Error.NotFound("Customer", customerId);
+            // Code: "NOT_FOUND"
+            // Message: "Customer with ID '123' was not found."
+            </code>
+            </example>
+        </member>
+        <member name="M:Company.Persistence.Abstractions.Results.Error.NotFound``1(System.Object)">
+            <summary>
+            Creates a "not found" error using the entity type name from the generic parameter.
+            </summary>
+            <typeparam name="TEntity">The entity type.</typeparam>
+            <param name="id">The ID that was not found.</param>
+            <returns>An error with code <see cref="F:Company.Persistence.Abstractions.Results.ErrorCodes.NotFound"/>.</returns>
+            <example>
+            <code>
+            return Error.NotFound&lt;Customer&gt;(customerId);
+            // Code: "NOT_FOUND"
+            // Message: "Customer with ID '123' was not found."
+            </code>
+            </example>
+        </member>
+        <member name="M:Company.Persistence.Abstractions.Results.Error.Conflict(System.String)">
+            <summary>
+            Creates a generic conflict error.
+            </summary>
+            <param name="message">Description of the conflict.</param>
+            <returns>An error with code <see cref="F:Company.Persistence.Abstractions.Results.ErrorCodes.Conflict"/>.</returns>
+        </member>
+        <member name="M:Company.Persistence.Abstractions.Results.Error.ConcurrencyConflict(System.String,System.Object)">
+            <summary>
+            Creates a concurrency conflict error for optimistic locking failures.
+            </summary>
+            <param name="entityType">The type of entity.</param>
+            <param name="id">The entity ID.</param>
+            <returns>An error with code <see cref="F:Company.Persistence.Abstractions.Results.ErrorCodes.Conflict"/>.</returns>
+            <example>
+            <code>
+            return Error.ConcurrencyConflict("Customer", customerId);
+            // Code: "CONFLICT"
+            // Message: "Customer with ID '123' was modified by another process. Please retry."
+            </code>
+            </example>
+        </member>
+        <member name="M:Company.Persistence.Abstractions.Results.Error.Validation(System.String)">
+            <summary>
+            Creates a validation error.
+            </summary>
+            <param name="message">Description of the validation failure.</param>
+            <returns>An error with code <see cref="F:Company.Persistence.Abstractions.Results.ErrorCodes.Validation"/>.</returns>
+        </member>
+        <member name="M:Company.Persistence.Abstractions.Results.Error.Duplicate(System.String)">
+            <summary>
+            Creates a duplicate/unique constraint error.
+            </summary>
+            <param name="message">Description of the duplicate.</param>
+            <returns>An error with code <see cref="F:Company.Persistence.Abstractions.Results.ErrorCodes.Duplicate"/>.</returns>
+            <example>
+            <code>
+            return Error.Duplicate("A customer with this email already exists.");
+            </code>
+            </example>
+        </member>
+        <member name="M:Company.Persistence.Abstractions.Results.Error.Unauthorized(System.String)">
+            <summary>
+            Creates an unauthorized access error.
+            </summary>
+            <param name="message">Description of the access denial.</param>
+            <returns>An error with code <see cref="F:Company.Persistence.Abstractions.Results.ErrorCodes.Unauthorized"/>.</returns>
+        </member>
+        <member name="M:Company.Persistence.Abstractions.Results.Error.FromException(System.Exception)">
+            <summary>
+            Creates an error from an exception (for infrastructure failures).
+            </summary>
+            <param name="exception">The underlying exception.</param>
+            <returns>An error with code <see cref="F:Company.Persistence.Abstractions.Results.ErrorCodes.InternalError"/>.</returns>
+            <remarks>
+            Use this for unexpected infrastructure errors that should be logged
+            but not exposed directly to callers.
+            </remarks>
+        </member>
+        <member name="T:Company.Persistence.Abstractions.Results.ErrorCodes">
+             <summary>
+             Well-known error codes for programmatic error handling.
+             </summary>
+             <remarks>
+             <para><b>Design Decision:</b> Constants over enum because:</para>
+             <list type="bullet">
+               <item><b>Extensible:</b> Consumers can define additional codes without modifying this library</item>
+               <item><b>Debuggable:</b> String comparison is clear in debugger and logs</item>
+               <item><b>Serializable:</b> No casting required for JSON/logging</item>
+             </list>
+             <para><b>Usage:</b> Compare against <see cref="P:Company.Persistence.Abstractions.Results.Error.Code"/> property:</para>
+             <code>
+             if (result.Error?.Code == ErrorCodes.NotFound)
+             {
+                 return NotFound();
+             }
+             </code>
+             </remarks>
+             <example>
+             <code>
+             var result = await repository.GetByIdAsync(id, ct);
+            
+             return result switch
+             {
+                 { IsSuccess: true } => Ok(result.Value),
+                 { Error.Code: ErrorCodes.NotFound } => NotFound(),
+                 { Error.Code: ErrorCodes.Conflict } => Conflict(result.Error.Message),
+                 _ => Problem(result.Error!.Message)
+             };
+             </code>
+             </example>
+        </member>
+        <member name="F:Company.Persistence.Abstractions.Results.ErrorCodes.NotFound">
+            <summary>
+            The requested entity was not found.
+            </summary>
+            <remarks>
+            Returned when <c>GetByIdAsync</c> cannot find an entity with the specified ID,
+            or when updating/deleting an entity that doesn't exist.
+            </remarks>
+        </member>
+        <member name="F:Company.Persistence.Abstractions.Results.ErrorCodes.Conflict">
+            <summary>
+            Optimistic concurrency conflict (version mismatch).
+            </summary>
+            <remarks>
+            Returned when <c>UpdateAsync</c> detects that the entity was modified
+            by another process since it was loaded. The caller should reload and retry.
+            </remarks>
+        </member>
+        <member name="F:Company.Persistence.Abstractions.Results.ErrorCodes.Validation">
+            <summary>
+            Input validation failed.
+            </summary>
+            <remarks>
+            Returned when input parameters don't meet validation requirements.
+            </remarks>
+        </member>
+        <member name="F:Company.Persistence.Abstractions.Results.ErrorCodes.Duplicate">
+            <summary>
+            Unique constraint violation (duplicate entry).
+            </summary>
+            <remarks>
+            Returned when inserting or updating would violate a unique index
+            (e.g., duplicate email address).
+            </remarks>
+        </member>
+        <member name="F:Company.Persistence.Abstractions.Results.ErrorCodes.Unauthorized">
+            <summary>
+            User lacks permission for the requested operation.
+            </summary>
+        </member>
+        <member name="F:Company.Persistence.Abstractions.Results.ErrorCodes.InternalError">
+            <summary>
+            Unexpected internal error occurred.
+            </summary>
+            <remarks>
+            Used for errors that don't fit other categories. The <see cref="P:Company.Persistence.Abstractions.Results.Error.InnerException"/>
+            may contain additional details.
+            </remarks>
+        </member>
+        <member name="T:Company.Persistence.Abstractions.Results.Result`1">
+            <summary>
+            Represents an operation outcome that can succeed with a value or fail with an error.
+            </summary>
+        </member>
+        <member name="T:Company.Persistence.Abstractions.Results.Result">
+            <summary>
+            Static factory methods for creating Result instances.
+            </summary>
+        </member>
+        <member name="T:Company.Persistence.Abstractions.Results.Unit">
+             <summary>
+             Represents a void return type for <see cref="T:Company.Persistence.Abstractions.Results.Result`1"/>.
+             Used when an operation succeeds but has no meaningful return value.
+             </summary>
+             <remarks>
+             <para><b>Design Decision:</b> Unit type over void because:</para>
+             <list type="bullet">
+               <item><b>Generic compatibility:</b> <c>void</c> cannot be used as a generic type argument</item>
+               <item><b>Consistency:</b> <c>Result&lt;Unit&gt;</c> provides consistent error handling</item>
+               <item><b>Zero allocation:</b> Single static instance avoids heap allocations</item>
+             </list>
+             <para><b>Usage:</b> Return <c>Result&lt;Unit&gt;</c> from operations that don't produce a value:</para>
+             <code>
+             Task&lt;Result&lt;Unit&gt;&gt; DeleteAsync(TId id, CancellationToken ct);
+             </code>
+             </remarks>
+             <example>
+             <code>
+             // Repository method returning Unit
+             public async Task&lt;Result&lt;Unit&gt;&gt; DeleteAsync(CustomerId id, CancellationToken ct)
+             {
+                 // ... perform delete ...
+                 return Unit.Value;  // Implicit conversion to Result&lt;Unit&gt;.Success
+             }
+            
+             // Controller usage
+             var result = await repository.DeleteAsync(id, ct);
+             return result.Match(
+                 success: _ => NoContent(),
+                 failure: error => Problem(error.Message)
+             );
+             </code>
+             </example>
+        </member>
+        <member name="F:Company.Persistence.Abstractions.Results.Unit.Value">
+            <summary>
+            Gets the singleton Unit value.
+            </summary>
+            <remarks>
+            Always use this static instance instead of creating new Unit values.
+            </remarks>
+        </member>
+        <member name="M:Company.Persistence.Abstractions.Results.Unit.Equals(Company.Persistence.Abstractions.Results.Unit)">
+            <inheritdoc />
+        </member>
+        <member name="M:Company.Persistence.Abstractions.Results.Unit.Equals(System.Object)">
+            <inheritdoc />
+        </member>
+        <member name="M:Company.Persistence.Abstractions.Results.Unit.GetHashCode">
+            <inheritdoc />
+        </member>
+        <member name="M:Company.Persistence.Abstractions.Results.Unit.ToString">
+            <inheritdoc />
+        </member>
+        <member name="M:Company.Persistence.Abstractions.Results.Unit.op_Equality(Company.Persistence.Abstractions.Results.Unit,Company.Persistence.Abstractions.Results.Unit)">
+            <summary>
+            All Unit values are equal.
+            </summary>
+        </member>
+        <member name="M:Company.Persistence.Abstractions.Results.Unit.op_Inequality(Company.Persistence.Abstractions.Results.Unit,Company.Persistence.Abstractions.Results.Unit)">
+            <summary>
+            All Unit values are equal.
+            </summary>
+        </member>
+        <member name="T:Company.Persistence.Abstractions.UnitOfWork.ITransaction">
+            <summary>
+            Represents a transaction scope for multi-document atomic operations.
+            </summary>
+            <remarks>
+            <para><b>When to Use Transactions:</b></para>
+            <list type="bullet">
+              <item>Multiple documents must be created/updated atomically</item>
+              <item>Business invariants span multiple aggregates</item>
+              <item>All-or-nothing semantics are required</item>
+            </list>
+            <para><b>When NOT to Use Transactions:</b></para>
+            <list type="bullet">
+              <item>Single-document operations (MongoDB provides automatic atomicity)</item>
+              <item>Read-only operations</item>
+              <item>Operations that can tolerate eventual consistency</item>
+            </list>
+            <para><b>MongoDB Requirements:</b></para>
+            <list type="bullet">
+              <item>Requires replica set (Atlas always provides this)</item>
+              <item>WriteConcern must be "majority" (our default)</item>
+            </list>
+            <para><b>Usage Pattern:</b></para>
+            <code>
+            await using var tx = await unitOfWork.BeginTransactionAsync(ct);
+            try
+            {
+                await repo1.AddAsync(entity1, ct);
+                await repo2.AddAsync(entity2, ct);
+                await tx.CommitAsync(ct);
+            }
+            catch
+            {
+                await tx.RollbackAsync(ct);
+                throw;
+            }
+            </code>
+            </remarks>
+        </member>
+        <member name="P:Company.Persistence.Abstractions.UnitOfWork.ITransaction.IsActive">
+            <summary>
+            Gets whether the transaction is still active (not committed or rolled back).
+            </summary>
+        </member>
+        <member name="M:Company.Persistence.Abstractions.UnitOfWork.ITransaction.CommitAsync(System.Threading.CancellationToken)">
+            <summary>
+            Commits all operations performed within this transaction.
+            </summary>
+            <param name="cancellationToken">Cancellation token (required).</param>
+            <returns>A task representing the asynchronous commit operation.</returns>
+            <exception cref="T:System.InvalidOperationException">
+            Thrown if the transaction has already been committed or rolled back.
+            </exception>
+            <remarks>
+            After calling this method, the transaction is no longer active.
+            </remarks>
+        </member>
+        <member name="M:Company.Persistence.Abstractions.UnitOfWork.ITransaction.RollbackAsync(System.Threading.CancellationToken)">
+            <summary>
+            Rolls back all operations performed within this transaction.
+            </summary>
+            <param name="cancellationToken">Cancellation token (required).</param>
+            <returns>A task representing the asynchronous rollback operation.</returns>
+            <remarks>
+            <para>After calling this method, the transaction is no longer active.</para>
+            <para>This method is idempotent - calling it multiple times has no additional effect.</para>
+            <para>Automatically called on <see cref="M:System.IAsyncDisposable.DisposeAsync"/> if
+            the transaction is still active (i.e., <see cref="M:Company.Persistence.Abstractions.UnitOfWork.ITransaction.CommitAsync(System.Threading.CancellationToken)"/> was not called).</para>
+            </remarks>
+        </member>
+        <member name="T:Company.Persistence.Abstractions.UnitOfWork.IUnitOfWork">
+             <summary>
+             Factory for creating transaction scopes.
+             </summary>
+             <remarks>
+             <para><b>Design Decision:</b> Transactions are opt-in, not automatic, because:</para>
+             <list type="bullet">
+               <item><b>Performance:</b> Transactions add latency (~10-20ms overhead)</item>
+               <item><b>Simplicity:</b> Most operations affect single documents (already atomic)</item>
+               <item><b>Scalability:</b> Long-running transactions can cause lock contention</item>
+             </list>
+             <para><b>When to Use:</b></para>
+             <list type="bullet">
+               <item>Customer + initial Subscription must be created together</item>
+               <item>Order + OrderItems must be consistent</item>
+               <item>Transfer funds between two accounts</item>
+             </list>
+             <para><b>Registration:</b> Register as <b>Scoped</b> for per-request transaction management:</para>
+             <code>services.AddScoped&lt;IUnitOfWork, MongoUnitOfWork&gt;();</code>
+             </remarks>
+             <example>
+             <code>
+             public class CustomerOnboardingService(
+                 IUnitOfWork unitOfWork,
+                 IRepository&lt;Customer, CustomerId&gt; customerRepo,
+                 IRepository&lt;Subscription, SubscriptionId&gt; subscriptionRepo)
+             {
+                 public async Task&lt;Result&lt;Customer&gt;&gt; OnboardAsync(
+                     CreateCustomerCommand cmd,
+                     CancellationToken ct)
+                 {
+                     // Start a transaction
+                     await using var tx = await unitOfWork.BeginTransactionAsync(ct);
+            
+                     try
+                     {
+                         // Create customer
+                         var customer = Customer.Create(cmd.Name, cmd.Email);
+                         var customerResult = await customerRepo.AddAsync(customer, ct);
+            
+                         if (!customerResult.IsSuccess)
+                         {
+                             await tx.RollbackAsync(ct);
+                             return customerResult;
+                         }
+            
+                         // Create subscription
+                         var subscription = Subscription.CreateTrial(customer.Id);
+                         var subResult = await subscriptionRepo.AddAsync(subscription, ct);
+            
+                         if (!subResult.IsSuccess)
+                         {
+                             await tx.RollbackAsync(ct);
+                             return Result.Failure&lt;Customer&gt;(subResult.Error!);
+                         }
+            
+                         // Commit both operations atomically
+                         await tx.CommitAsync(ct);
+                         return customerResult;
+                     }
+                     catch (Exception)
+                     {
+                         await tx.RollbackAsync(ct);
+                         throw;
+                     }
+                 }
+             }
+             </code>
+             </example>
+        </member>
+        <member name="M:Company.Persistence.Abstractions.UnitOfWork.IUnitOfWork.BeginTransactionAsync(System.Threading.CancellationToken)">
+            <summary>
+            Begins a new transaction scope.
+            </summary>
+            <param name="cancellationToken">Cancellation token (required).</param>
+            <returns>
+            A transaction scope that must be committed or rolled back.
+            Use <c>await using</c> to ensure proper cleanup.
+            </returns>
+            <remarks>
+            <para><b>Important:</b> All repository operations within the transaction scope
+            will automatically participate in the transaction.</para>
+            <para><b>Cleanup:</b> If the transaction is disposed without calling
+            <see cref="M:Company.Persistence.Abstractions.UnitOfWork.ITransaction.CommitAsync(System.Threading.CancellationToken)"/>, it is automatically rolled back.</para>
+            </remarks>
+            <example>
+            <code>
+            // Recommended pattern using await using
+            await using var tx = await unitOfWork.BeginTransactionAsync(ct);
+            // ... operations ...
+            await tx.CommitAsync(ct);
+            // tx is automatically disposed even if an exception occurs
+            </code>
+            </example>
+        </member>
+        <member name="P:Company.Persistence.Abstractions.UnitOfWork.IUnitOfWork.HasActiveTransaction">
+            <summary>
+            Gets whether a transaction is currently active for this unit of work instance.
+            </summary>
+            <remarks>
+            Use this to check if operations will participate in a transaction.
+            </remarks>
+        </member>
+    </members>
+</doc>
